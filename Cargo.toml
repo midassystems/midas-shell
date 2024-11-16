@@ -1,0 +1,50 @@
+[package]
+name = "repl-shell"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+prettytable ="0.10.0"
+dirs = "5.0.1"
+reedline ="0.35.0"
+nu-ansi-term = "0.50.1"
+crossterm = "0.28.1"
+clap = {version= "4.5.13", features = ["derive"] }
+clap_derive = "4.5.13"
+thiserror = "1.0.61"
+plotters = "0.3.1"
+serde = {version ="1.0.205", features = ["derive"]}
+serde_json = "1.0.122"
+dotenv = "0.15"
+async-trait = "0.1"
+tokio = {version ="1.38.1", features = ["full"]}
+toml = "0.8.19"
+warp = "0.3.7"
+databento = "0.14.1"
+anyhow = "1.0.86"
+time = { version = "0.3", features = ["macros"] }
+walkdir = "2.3"
+async-compression = { version = "0.4.11", features = ["tokio", "zstd"] }
+# config = { path = "../config" } 
+# vendors = {path="../vendors"}
+mbn = { git = "https://github.com/anthonyb8/mbn.git", branch = "main" }
+midas_client = { git ="https://github.com/anthonyb8/midas-rs.git", branch ="main" }
+
+
+[dev-dependencies]
+serial_test = "3.1.1"
+once_cell = "1.10.0"  # or use lazy_static
+
+[lib]
+# name="midas-server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "midas-shell"
+path = "src/main.rs"
+
+# Define the CLI binary
+[[bin]]
+name = "midas_cli"
+path = "src/cli_main.rs"
+
