@@ -1,4 +1,3 @@
-use crate::error::Error;
 use crate::error::Result;
 use midas_client::historical::Historical;
 use std::env;
@@ -22,23 +21,11 @@ pub fn get_ticker_file() -> crate::Result<PathBuf> {
     Ok(ticker_path)
 }
 
-/// Loads to database, deletes MBN file after
-pub async fn load_file<T: AsRef<Historical>>(file_name: &PathBuf, client: T) -> Result<()> {
-    // println!("{:?}", file_name);
-    // let filepath = &PathBuf::from("data/processed_data").join(file_name);
-
-    // Convert PathBuf to String
+/// Loads a file to database, must be in the directory mounted to docker dir /data/processed_data
+pub async fn load_file(file_name: &PathBuf, client: &Historical) -> Result<()> {
     let file_string: String = file_name.to_string_lossy().into_owned();
+    let _ = client.create_mbp_from_file(&file_string).await?;
 
-    // -- Load
-    let _ = client.as_ref().create_mbp_from_file(&file_string).await?;
-
-    // // -- CLEAN
-    // if let Err(e) = tokio::fs::remove_file(&file_name).await {
-    //     eprintln!("Failed to delete MBN file: {:?}", e);
-    // } else {
-    //     println!("MBN file deleted successfully: {:?}", file_name);
-    // }
     Ok(())
 }
 
@@ -49,7 +36,7 @@ pub fn user_input() -> Result<bool> {
         return Ok(true); // Default to proceeding or canceling based on your requirement
     }
 
-    let mut attempts = 0; // Initialize a counter for attempts
+    let mut attempts = 0;
 
     loop {
         // Prompt the user for input
@@ -102,7 +89,7 @@ pub fn run_python_engine(config_path: &str) -> std::io::Result<()> {
 
     Ok(())
 }
-
+/// Gets python from environment.
 fn which_python() -> std::io::Result<PathBuf> {
     // Use `which` or `where` command to find Python in the current environment's PATH
     let python_command = if cfg!(target_os = "windows") {

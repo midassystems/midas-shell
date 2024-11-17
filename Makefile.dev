@@ -4,10 +4,10 @@ all: clean build package
 
 build:
 	# Build all Rust binaries in release mode
-	cargo build --workspace
+	cargo build 
 
 	# Build frontend assets with Yarn
-	cd gui && yarn install && yarn tauri build --debug
+	# cd gui && yarn install && yarn tauri build --debug
 
 package:
 	# Create release directory structure

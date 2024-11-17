@@ -32,7 +32,7 @@ pub struct HistoricalArgs {
 #[async_trait]
 impl ProcessCommand for HistoricalArgs {
     async fn process_command(&self, context: &Context) -> Result<()> {
-        let client = context.get_historical_client().await;
+        let client = context.get_historical_client();
 
         // Split the symbols string into a vector of symbols
         let symbols: Vec<String> = self

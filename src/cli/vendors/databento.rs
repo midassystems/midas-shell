@@ -57,10 +57,7 @@ pub struct DatabentoArgs {
 #[derive(Debug, Subcommand)]
 pub enum DatabentoCommands {
     /// Standard update, adds mbp for tickers already in the database for entire previous day.
-    Update {
-        // #[arg(long)]
-        // tickers_filepath: Option<String>,
-    },
+    Update {},
     /// Download databento data to file
     Download {
         /// --tickers AAPL GOOGL TSLA
@@ -100,9 +97,6 @@ pub enum DatabentoCommands {
         /// File path to save the downloaded binary data.
         #[arg(long)]
         mbn_filepath: String,
-        // /// Schema ex. Mbp1, Ohlcv
-        // #[arg(long)]
-        // tickers_filepath: Option<String>,
     },
     /// Compare databento and midas data
     Compare {
@@ -116,7 +110,7 @@ pub enum DatabentoCommands {
 #[async_trait]
 impl ProcessCommand for DatabentoCommands {
     async fn process_command(&self, context: &Context) -> Result<()> {
-        let client = context.get_historical_client().await;
+        let client = context.get_historical_client();
         let db_client = context.get_databento_client().await;
 
         match self {
@@ -145,7 +139,7 @@ impl ProcessCommand for DatabentoCommands {
                 let schema_enum = Schema::from_str(schema.as_str())
                     .expect(format!("Invalid schema : {}", schema.as_str()).as_str());
 
-                println!("{}, {}", start_date, end_date);
+                // println!("{}, {}", start_date, end_date);
                 // Download
                 {
                     let mut db_client = db_client.lock().await;
@@ -166,14 +160,11 @@ impl ProcessCommand for DatabentoCommands {
 
                 // Tickers
                 let tickers_file = get_ticker_file()?;
-                println!("{:?}", tickers_file);
-
                 let tickers = get_tickers(&tickers_file, "databento", &client).await?;
                 let mut mbn_map = HashMap::new();
                 for ticker in tickers {
                     mbn_map.insert(ticker.ticker.clone(), ticker.get_mbn_id()?);
                 }
-                println!("{:?}", mbn_map);
                 {
                     // Update
                     // Lock the mutex to get a mutable reference to DatabentoClient

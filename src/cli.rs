@@ -4,7 +4,6 @@ mod help;
 pub mod historical;
 mod live;
 pub mod strategies;
-// mod utils;
 pub mod vendors;
 
 use crate::context::Context;

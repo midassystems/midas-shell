@@ -1,8 +1,4 @@
 use clap::Parser;
-// use cli::{
-//     cli::{CliArgs, ProcessCommand},
-//     Result,
-// };
 use repl_shell::cli::{CliArgs, ProcessCommand};
 use repl_shell::context::Context;
 use repl_shell::error::Result;

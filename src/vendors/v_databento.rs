@@ -277,13 +277,9 @@ impl DatabentoClient {
     }
 }
 
-// #[async_trait]
+#[async_trait]
 impl Vendor for DatabentoClient {
-    async fn update<T: AsRef<Historical>>(
-        &mut self,
-        tickers: Vec<Ticker>,
-        client: T,
-    ) -> Result<()> {
+    async fn update(&mut self, tickers: Vec<Ticker>, client: &Historical) -> Result<()> {
         // End date
         let now = OffsetDateTime::now_utc();
         let end = now.replace_time(time::macros::time!(00:00));
@@ -327,7 +323,7 @@ impl Vendor for DatabentoClient {
                     &download_type,
                     &download_path,
                     &mbn_filename,
-                    &client,
+                    client,
                 )
                 .await?;
         }
@@ -344,11 +340,6 @@ impl Vendor for DatabentoClient {
         dataset: &str,
         stype: &str,
     ) -> Result<(DownloadType, PathBuf)> {
-        // // Create the DatabentoClient
-        // let api_key = std::env::var("DATABENTO_KEY").expect("DATABENTO_KEY not set.");
-        // let mut client = DatabentoClient::new(api_key)?;
-
-        // Download
         let raw_dir = std::env::var("RAW_DIR").expect("RAW_DIR not set.");
         let (download_type, download_path) = self
             .get_historical(
@@ -362,7 +353,7 @@ impl Vendor for DatabentoClient {
             )
             .await?
             .ok_or(Error::NoDataError)?;
-        println!("{:?}", download_path);
+        // println!("{:?}", download_path);
 
         Ok((download_type, download_path))
     }
@@ -373,7 +364,6 @@ impl Vendor for DatabentoClient {
         dbn_filename: &PathBuf,
         mbn_filename: &PathBuf,
     ) -> Result<PathBuf> {
-        // println!("{:?}", dbn_path);
         // -- Extract
         let raw_dir = env::var("RAW_DIR").expect("RAW_DIR not set.");
         let dbn_filepath = &PathBuf::from(raw_dir).join("databento").join(dbn_filename);
@@ -381,7 +371,6 @@ impl Vendor for DatabentoClient {
         let mut records;
         let dbn_map;
         (records, dbn_map) = read_dbn_file(dbn_filepath.clone()).await?;
-        println!("file read");
 
         // -- TRANSFORM
         // Map DBN instrument to MBN insturment
@@ -394,16 +383,16 @@ impl Vendor for DatabentoClient {
 
         Ok(mbn_filepath.clone())
     }
-    async fn load<T: AsRef<Historical>>(
+    async fn load(
         &self,
         mbn_map: HashMap<String, u32>,
         download_type: &DownloadType,
         download_path: &PathBuf,
         mbn_filename: &PathBuf,
-        client: &T,
+        client: &Historical,
     ) -> Result<()> {
         if download_type == &DownloadType::Stream {
-            let file = self
+            let _file = self
                 .transform(&mbn_map, download_path, mbn_filename)
                 .await?;
             load_file(&mbn_filename, client).await?;

@@ -62,62 +62,6 @@ pub async fn read_dbn_batch_dir(dir_path: &PathBuf) -> Result<Vec<PathBuf>> {
     }
 }
 
-/// Read directory created by dbn batch job.
-// pub async fn read_dbn_batch_dir(
-//     dir_path: PathBuf,
-// ) -> Result<(
-//     AsyncDbnDecoder<ZstdDecoder<BufReader<File>>>,
-//     HashMap<String, String>,
-// )> {
-//     // List files in batch dir
-//     let mut files = Vec::new();
-//     for entry in WalkDir::new(dir_path)
-//         .into_iter()
-//         .filter_map(|e| e.ok())
-//         .filter(|e| e.file_type().is_file())
-//     {
-//         files.push(entry.path().to_path_buf());
-//     }
-//
-//     let mut symbol_map_hash = HashMap::new();
-//     let mut decoder = None;
-//
-//     // Decode Files
-//     for downloaded_file in files {
-//         println!("{:?}", downloaded_file);
-//
-//         if let Some(extension) = downloaded_file.extension() {
-//             if extension == "zst" {
-//                 let current_decoder =
-//                     AsyncDbnDecoder::with_zstd(File::open(&downloaded_file).await?).await?;
-//
-//                 // Extract Symbol Map
-//                 let metadata = current_decoder.metadata();
-//                 let map = symbol_map(&metadata)?;
-//
-//                 // Merge the symbol map into the global map
-//                 for (id, ticker) in map {
-//                     symbol_map_hash.insert(id, ticker.clone());
-//                 }
-//
-//                 // Set decoder to the first file found
-//                 if decoder.is_none() {
-//                     decoder = Some(current_decoder);
-//                 }
-//             }
-//         }
-//     }
-//
-//     // Ensure a decoder was found
-//     if let Some(decoder) = decoder {
-//         Ok((decoder, symbol_map_hash))
-//     } else {
-//         Err(crate::Error::CustomError(
-//             "No Zstd compressed files found".to_string(),
-//         ))
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -14,17 +14,17 @@ clean:
 
 build:
 	# Build frontend assets with Yarn
-	cd gui && yarn install && yarn tauri build
+	# cd gui && yarn install && yarn tauri build
 
 	# Build all Rust binaries in release mode
-	cargo build --release --workspace
+	cargo build --release
 
 package:
 	# Create release directory structure
 	mkdir -p midas-release
 	mkdir -p midas-release/bin
 	mkdir -p midas-release/config
-	mkdir -p midas-release/bundle
+	# mkdir -p midas-release/bundle
 	# mkdir -p midas-release/bin/engine-bin # uncommment when cpp engine ready
 
 	# Copy the CLI binary
@@ -32,7 +32,7 @@ package:
 	# cp -r repl/bin/* midas-release/bin/engine-bin
 
 	# Copy the Tauri app bundle (for macOS)
-	cp -r target/release/bundle/* midas-release/bundle/
+	# cp -r target/release/bundle/* midas-release/bundle/
 
 	# Copy additional required files
 	cp -r config/* midas-release/config/

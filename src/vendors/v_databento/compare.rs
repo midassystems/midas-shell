@@ -1,9 +1,10 @@
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::vendors::v_databento::extract::read_dbn_file;
 use mbn::decode::AsyncDecoder;
 use mbn::record_enum::RecordEnum;
 use std::path::PathBuf;
 use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
 
 pub async fn read_mbn_file(filepath: &PathBuf) -> Result<AsyncDecoder<BufReader<File>>> {
@@ -49,23 +50,38 @@ pub async fn compare_dbn(dbn_filepath: PathBuf, mbn_filepath: &PathBuf) -> Resul
         }
     }
 
-    // Check for remaining unmatched MBN records
+    // Create or truncate the output file
+    let output_file = "compare_results.txt";
+    let mut file = File::create(&output_file).await?;
+
+    // Check for remaining unmatched MBN records and write them to the file
     if !mbn_batch.is_empty() {
-        return Err(Error::CustomError(format!(
-            "Unmatched records found in mbn_records: {:?}",
-            mbn_batch
-        )));
+        file.write_all(b"Unmatched MBN Records:\n").await?;
+        for mbn_record in &mbn_batch {
+            file.write_all(format!("{:?}\n", mbn_record).as_bytes())
+                .await?;
+        }
     }
 
-    // Check for remaining unmatched DBN records
+    // Check for remaining unmatched DBN records and write them to the file
     if !unmatched_dbn_records.is_empty() {
-        return Err(Error::CustomError(format!(
-            "Unmatched records found in dbn_records: {:?}",
-            unmatched_dbn_records
-        )));
+        file.write_all(b"Unmatched DBN Records:\n").await?;
+        for dbn_record in &unmatched_dbn_records {
+            file.write_all(format!("{:?}\n", dbn_record).as_bytes())
+                .await?;
+        }
     }
 
-    println!("All records match successfully.");
+    // Return an error if there are unmatched records in either batch
+    if mbn_batch.is_empty() || unmatched_dbn_records.is_empty() {
+        println!("All records match successfully.");
+    } else {
+        eprintln!(
+            "Unmatched records detected. Check the output file: {:?}",
+            output_file
+        );
+    }
+
     Ok(())
 }
 
