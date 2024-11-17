@@ -1598,7 +1598,7 @@ checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 [[package]]
 name = "mbn"
 version = "0.1.0"
-source = "git+https://github.com/anthonyb8/mbn.git?branch=main#5e4d24bb5d9783135106193bb71a08d95ff5d81c"
+source = "git+https://github.com/anthonyb8/mbn.git?branch=main#69b1a5ae687192f9b9419d9bdbfcd9e781145841"
 dependencies = [
  "bigdecimal",
  "chrono",
@@ -1634,7 +1634,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 [[package]]
 name = "midas_client"
 version = "0.1.0"
-source = "git+https://github.com/anthonyb8/midas-rs.git?branch=main#2d0b9229d563fd91d35804100f5fc36b9778fcfe"
+source = "git+https://github.com/anthonyb8/midas-rs.git?branch=main#813dea80a5b56a0d38695287310c5538f7a78ee0"
 dependencies = [
  "anyhow",
  "axum",

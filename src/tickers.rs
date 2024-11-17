@@ -98,10 +98,6 @@ impl TryFrom<JsonTicker> for Ticker {
 /// Load the tickers file into HashMap, mirros the json format
 /// {"vendor_name" : [JsonTicker, JsonTicker, ...] }
 async fn load_tickers_file(config_path: &PathBuf) -> Result<HashMap<String, Vec<JsonTicker>>> {
-    // Determine the config path
-    // let config_path = PathBuf::from(file_path);
-
-    // Read the configuration file
     if !config_path.exists() {
         panic!(
             "JSON file not found: {}. Please ensure it exists.",
@@ -155,14 +151,9 @@ pub async fn process_tickers(
 
 /// Adds the tickers to the database if not already existing
 /// Returns a map of the ticker to id in database
-pub async fn create_tickers<T: AsRef<Historical>>(
-    tickers: &mut Vec<Ticker>,
-    client: T,
-) -> Result<Vec<Ticker>> {
-    // let mut ticker_map: HashMap<String, u32> = HashMap::new();
-
+pub async fn create_tickers(tickers: &mut Vec<Ticker>, client: &Historical) -> Result<Vec<Ticker>> {
     for ticker in tickers.iter_mut() {
-        let response = client.as_ref().get_symbol(&ticker.ticker).await?;
+        let response = client.get_symbol(&ticker.ticker).await?;
         let id: Option<u32> = response.data;
 
         match id {
@@ -171,47 +162,21 @@ pub async fn create_tickers<T: AsRef<Historical>>(
                 // ticker_map.insert(ticker.ticker.clone(), value);
             }
             None => {
-                let response = client
-                    .as_ref()
-                    .create_symbol(&ticker.to_instrument())
-                    .await?;
+                let response = client.create_symbol(&ticker.to_instrument()).await?;
                 let id = response.data.ok_or_else(|| {
                     Error::Conversion(format!("Error creating ticker: {}", ticker.ticker.clone()))
                 })?;
                 ticker.mbn_id = Some(id);
-                // ticker_map.insert(ticker.ticker.clone(), id);
             }
         }
     }
     Ok(tickers.to_vec())
-    // Ok(ticker_map)
 }
 
-// pub async fn filter_tickers(
-//     tickers: &Vec<Ticker>,
-// ) -> Result<HashMap<(String, String, OffsetDateTime), Vec<String>>> {
-//     // Group tickers by (dataset, stype)
-//     let mut grouped_tickers: HashMap<(String, String, OffsetDateTime), Vec<String>> =
-//         HashMap::new();
-//
-//     for ticker in tickers {
-//         grouped_tickers
-//             .entry((
-//                 ticker.dataset.clone(),
-//                 ticker.stype.clone(),
-//                 ticker.last_update.clone(),
-//             ))
-//             .or_insert_with(Vec::new)
-//             .push(ticker.ticker.clone());
-//     }
-//
-//     Ok(grouped_tickers)
-// }
-
-pub async fn get_tickers<T: AsRef<Historical>>(
+pub async fn get_tickers(
     file_path: &PathBuf,
     source: &str,
-    client: T,
+    client: &Historical,
 ) -> Result<Vec<Ticker>> {
     // Load File
     let raw_tickers = load_tickers_file(file_path).await?;
@@ -221,9 +186,6 @@ pub async fn get_tickers<T: AsRef<Historical>>(
 
     // Create and Map
     let tickers = create_tickers(&mut active_tickers, &client).await?;
-
-    // Filter
-    // let grouped_tickers = filter_tickers(&active_tickers).await?;
 
     Ok(tickers)
 }
@@ -286,13 +248,6 @@ mod tests {
             let _ = client.delete_symbol(&(id as i32)).await?;
         }
 
-        // for x in vec!["ZM.n.0", "GC.n.0"] {
-        //     assert!(mbn_map.contains_key(x));
-        // }
-
-        // // Cleanup
-        // for instrument in mbn_map {}
-
         Ok(())
     }
 
@@ -312,16 +267,6 @@ mod tests {
             assert!(id > 0);
             let _ = client.delete_symbol(&(id as i32)).await?;
         }
-
-        // // Validate
-        // for x in vec!["ZM.n.0", "GC.n.0"] {
-        //     assert!(mbn_map.contains_key(x));
-        // }
-        //
-        // // Cleanup
-        // for value in mbn_map.values() {
-        //     let _ = client.delete_symbol(&(*value as i32)).await?;
-        // }
 
         Ok(())
     }

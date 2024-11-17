@@ -152,7 +152,6 @@ impl Repl {
                                 }
                             }
                         }
-                        // Print error if command parsing failed
                         Err(err) => {
                             println!("{}", err);
                         }

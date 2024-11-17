@@ -11,7 +11,6 @@ pub fn instrument_id_map(
     dbn_map: HashMap<String, String>,
     mbn_map: HashMap<String, u32>,
 ) -> Result<HashMap<u32, u32>> {
-    // Create the new map
     let mut map = HashMap::new();
 
     for (id, ticker) in dbn_map.iter() {
@@ -48,7 +47,6 @@ async fn mbn_to_file(records: &Vec<Mbp1Msg>, file_name: &PathBuf) -> Result<()> 
     let mut encoder = RecordEncoder::new(&mut buffer);
     encoder.encode_records(&refs)?;
 
-    // Output to file
     let _ = encoder.write_to_file(file_name)?;
 
     Ok(())

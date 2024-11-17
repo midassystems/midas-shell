@@ -39,14 +39,6 @@ pub enum Error {
     FormatError(#[from] time::error::Format),
     #[error("MBN error: {0}")]
     MbnError(#[from] mbn::error::Error),
-    // #[error("Vendor error: {0}")]
-    // VendorError(#[from] vendors::error::Error),
-    // #[error("Data Error: {0}")]
-    // DataError(#[from] data_sources::error::Error),
-    // #[error("Parsing Error: {0}")]
-    // ParsingError(#[from] time::error::Parse),
-    // #[error("Config Error: {0}")]
-    // ConfigError(#[from] config::error::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

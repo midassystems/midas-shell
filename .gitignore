@@ -10,12 +10,14 @@ deploy.txt
 *.bin
 /lib
 /bin
-/config
+# /config
 /postgres
 /zextra
 config_real.toml
+tickers.json
 
 sql_commands.txt
 test.sql
 command.txt
 history.txt
+*.txt

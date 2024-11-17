@@ -9,8 +9,8 @@ use tokio::sync::Mutex;
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 pub struct Config {
     pub common: CommonConfig,
-    pub dashboard: DashboardConfig,
     pub vendors: VendorsConfig,
+    // pub dashboard: DashboardConfig,
 }
 
 impl Config {
@@ -58,42 +58,42 @@ impl Default for CommonConfig {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
-pub struct DashboardConfig {
-    pub window_title: String,
-    pub default_theme: String,
-    pub refresh_interval: u64,
-    pub finnhub_url: String,
-    pub finnhub_key: String,
-    pub num_charts: u8,
-    pub chart_symbols: Vec<String>,
-}
-
-impl Default for DashboardConfig {
-    fn default() -> Self {
-        DashboardConfig {
-            window_title: "Dashboard".to_string(),
-            default_theme: "dark".to_string(),
-            refresh_interval: 60,
-            finnhub_url: "https://finnhub.io/api/v1/news?category=general&token={finnhub_key}"
-                .to_string(),
-            finnhub_key: "api_key".to_string(),
-            num_charts: 4,
-            chart_symbols: vec![
-                "FOREXCOM:SPXUSD".to_string(),
-                "CBOT:ZM1!".to_string(),
-                "CME:HE1!".to_string(),
-                "CBOT:ZC1!".to_string(),
-            ],
-        }
-    }
-}
+// #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
+// pub struct DashboardConfig {
+//     pub window_title: String,
+//     pub default_theme: String,
+//     pub refresh_interval: u64,
+//     pub finnhub_url: String,
+//     pub finnhub_key: String,
+//     pub num_charts: u8,
+//     pub chart_symbols: Vec<String>,
+// }
+//
+// impl Default for DashboardConfig {
+//     fn default() -> Self {
+//         DashboardConfig {
+//             window_title: "Dashboard".to_string(),
+//             default_theme: "dark".to_string(),
+//             refresh_interval: 60,
+//             finnhub_url: "https://finnhub.io/api/v1/news?category=general&token={finnhub_key}"
+//                 .to_string(),
+//             finnhub_key: "api_key".to_string(),
+//             num_charts: 4,
+//             chart_symbols: vec![
+//                 "FOREXCOM:SPXUSD".to_string(),
+//                 "CBOT:ZM1!".to_string(),
+//                 "CME:HE1!".to_string(),
+//                 "CBOT:ZC1!".to_string(),
+//             ],
+//         }
+//     }
+// }
 
 #[allow(dead_code)]
 pub struct Context {
     config: Config,
-    historical_client: Arc<Historical>,
-    trading_client: Arc<Trading>,
+    historical_client: Historical,
+    trading_client: Trading,
     databento_client: Arc<Mutex<DatabentoClient>>,
 }
 
@@ -101,8 +101,8 @@ impl Context {
     pub fn init() -> Result<Self> {
         let config_path = Self::config_path();
         let config = Config::from_toml(&config_path)?;
-        let historical_client = Arc::new(Historical::new(&config.common.historical_url));
-        let trading_client = Arc::new(Trading::new(&config.common.trading_url));
+        let historical_client = Historical::new(&config.common.historical_url);
+        let trading_client = Trading::new(&config.common.trading_url);
         let databento_client = Arc::new(Mutex::new(DatabentoClient::new(
             &config.vendors.databento_key,
         )?));
@@ -114,14 +114,13 @@ impl Context {
             databento_client,
         })
     }
-
-    pub async fn get_historical_client(&self) -> Arc<Historical> {
-        // Create clone arc update
-        Arc::clone(&self.historical_client)
+    pub fn get_historical_client(&self) -> Historical {
+        self.historical_client.clone()
     }
-    pub async fn get_trading_client(&self) -> Arc<Trading> {
+
+    pub fn get_trading_client(&self) -> Trading {
         // Lock the client asynchronously
-        Arc::clone(&self.trading_client)
+        self.trading_client.clone()
     }
 
     pub async fn get_databento_client(&self) -> Arc<Mutex<DatabentoClient>> {

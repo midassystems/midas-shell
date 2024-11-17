@@ -30,7 +30,7 @@ impl ProcessCommand for BacktestCommands {
     async fn process_command(&self, context: &Context) -> Result<()> {
         match self {
             BacktestCommands::List => {
-                let client = context.get_trading_client().await;
+                let client = context.get_trading_client();
 
                 // Call the method on the client
                 let backtests = client.list_backtest().await?;
