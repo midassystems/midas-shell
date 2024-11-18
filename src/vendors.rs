@@ -40,6 +40,7 @@ pub trait Vendor {
         end: OffsetDateTime,
         dataset: &str,
         stype: &str,
+        dir_path: Option<String>,
     ) -> Result<(DownloadType, PathBuf)>;
 
     /// Transforms data from vendor format to mbn format.

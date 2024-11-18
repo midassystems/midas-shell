@@ -83,6 +83,10 @@ pub enum DatabentoCommands {
         /// End date in YYYY-MM-DD HH:MM:SS format.
         #[arg(long)]
         stype: String,
+
+        /// Optional path, if not provided will defualt to RAW_DIR variable.
+        #[arg(long)]
+        dir_path: Option<String>,
     },
     /// Upload a databento file to database
     Upload {
@@ -133,6 +137,7 @@ impl ProcessCommand for DatabentoCommands {
                 schema,
                 dataset,
                 stype,
+                dir_path,
             } => {
                 let start_date = process_start_date(start)?;
                 let end_date = processs_end_date(Some(end.clone()))?;
@@ -144,7 +149,15 @@ impl ProcessCommand for DatabentoCommands {
                 {
                     let mut db_client = db_client.lock().await;
                     let _ = db_client
-                        .download(tickers, schema_enum, start_date, end_date, dataset, stype)
+                        .download(
+                            tickers,
+                            schema_enum,
+                            start_date,
+                            end_date,
+                            dataset,
+                            stype,
+                            dir_path.clone(),
+                        )
                         .await?;
                 }
                 Ok(())
