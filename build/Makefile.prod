@@ -23,6 +23,7 @@ package:
 
 	# Copy the CLI binary
 	cp target/release/midas-shell midas-release/bin
+	cp target/release/midas-cli midas-release/bin
 
 	# Copy additional required files
 	cp -r config/config.toml midas-release/config/config.toml

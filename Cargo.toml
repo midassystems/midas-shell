@@ -45,6 +45,6 @@ path = "src/main.rs"
 
 # Define the CLI binary
 [[bin]]
-name = "midas_cli"
+name = "midas-cli"
 path = "src/cli_main.rs"
 
