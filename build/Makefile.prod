@@ -32,4 +32,4 @@ package:
 	cp README.md midas-release/
 
 	# Create a tar.gz archive of the release
-	tar -czvf midas-1.0.0.tar.gz midas-release/
+	tar -czvf release/midas-1.0.0.tar.gz midas-release/

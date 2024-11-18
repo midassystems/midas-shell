@@ -2,7 +2,7 @@
 
 dev() {
 	echo "Building in development mode..."
-	make -f make/Makefile.dev
+	make -f build/Makefile.dev
 }
 
 run_dev() {
@@ -13,7 +13,7 @@ run_dev() {
 
 prodution() {
 	echo "Building in production mode..."
-	make -f make/Makefile.prod
+	make -f build/Makefile.prod
 }
 
 options() {
