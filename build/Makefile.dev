@@ -12,9 +12,9 @@ package:
 	mkdir -p target/debug/deps/config
 
 	# Copy additional required files
-	cp -r config/* target/debug/config/
-	cp config_real.toml target/debug/config/config.toml
-	cp config_real.toml target/debug/deps/config/config.toml
+	cp -r config/midas_starship.toml target/debug/config/midas_starship.toml
+	cp -r tests/tickers.json target/debug/config/tickers.json
+	cp config_real.toml target/debug/config_real.toml
 
 	# cp -r repl/bin/* midas-release/bin/engine-bin
 	

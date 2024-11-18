@@ -25,7 +25,8 @@ package:
 	cp target/release/midas-shell midas-release/bin
 
 	# Copy additional required files
-	cp -r config/* midas-release/config/
+	cp -r config/config.toml midas-release/config/config.toml
+	cp -r config/midas_starship.toml midas-release/config/midas_starship.toml
 	
 	# Installation script
 	cp ./scripts/install.sh midas-release/
