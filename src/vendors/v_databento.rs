@@ -301,6 +301,7 @@ impl Vendor for DatabentoClient {
                     end,
                     &ticker.dataset,
                     &ticker.stype,
+                    None,
                 )
                 .await?;
 
@@ -339,8 +340,15 @@ impl Vendor for DatabentoClient {
         end: OffsetDateTime,
         dataset: &str,
         stype: &str,
+        dir_path: Option<String>,
     ) -> Result<(DownloadType, PathBuf)> {
-        let raw_dir = std::env::var("RAW_DIR").expect("RAW_DIR not set.");
+        let dir;
+        if let Some(path) = dir_path {
+            dir = PathBuf::from(path);
+        } else {
+            let raw_dir = std::env::var("RAW_DIR").expect("RAW_DIR not set.");
+            dir = PathBuf::from(raw_dir);
+        }
         let (download_type, download_path) = self
             .get_historical(
                 &Dataset::from_str(&dataset)?,
@@ -349,11 +357,11 @@ impl Vendor for DatabentoClient {
                 &tickers,
                 &schema,
                 &SType::from_str(&stype)?,
-                &PathBuf::from(raw_dir),
+                &dir,
             )
             .await?
             .ok_or(Error::NoDataError)?;
-        // println!("{:?}", download_path);
+        println!("{:?}", download_path);
 
         Ok((download_type, download_path))
     }
