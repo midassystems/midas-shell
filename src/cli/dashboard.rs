@@ -24,10 +24,10 @@ fn get_dashboard_path() -> PathBuf {
         // Production mode
         if cfg!(target_os = "macos") {
             // In production on macOS, the Tauri app would be in /Applications
-            dashboard_path = PathBuf::from("/Applications/midas-gui.app");
+            dashboard_path = PathBuf::from("/Applications/Midas.app");
         } else if cfg!(target_os = "linux") {
             // In production on Linux, the midas-gui binary is likely installed in /usr/local/bin
-            dashboard_path = PathBuf::from("/usr/local/bin/midas-gui");
+            dashboard_path = PathBuf::from("/usr/local/bin/Midas");
         }
     }
     dashboard_path
