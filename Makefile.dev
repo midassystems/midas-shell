@@ -6,9 +6,6 @@ build:
 	# Build all Rust binaries in release mode
 	cargo build 
 
-	# Build frontend assets with Yarn
-	# cd gui && yarn install && yarn tauri build --debug
-
 package:
 	# Create release directory structure
 	mkdir -p target/debug/config
@@ -18,7 +15,6 @@ package:
 	cp -r config/* target/debug/config/
 	cp config_real.toml target/debug/config/config.toml
 	cp config_real.toml target/debug/deps/config/config.toml
-
 
 	# cp -r repl/bin/* midas-release/bin/engine-bin
 	

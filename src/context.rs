@@ -10,7 +10,6 @@ use tokio::sync::Mutex;
 pub struct Config {
     pub common: CommonConfig,
     pub vendors: VendorsConfig,
-    // pub dashboard: DashboardConfig,
 }
 
 impl Config {
@@ -58,37 +57,6 @@ impl Default for CommonConfig {
     }
 }
 
-// #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
-// pub struct DashboardConfig {
-//     pub window_title: String,
-//     pub default_theme: String,
-//     pub refresh_interval: u64,
-//     pub finnhub_url: String,
-//     pub finnhub_key: String,
-//     pub num_charts: u8,
-//     pub chart_symbols: Vec<String>,
-// }
-//
-// impl Default for DashboardConfig {
-//     fn default() -> Self {
-//         DashboardConfig {
-//             window_title: "Dashboard".to_string(),
-//             default_theme: "dark".to_string(),
-//             refresh_interval: 60,
-//             finnhub_url: "https://finnhub.io/api/v1/news?category=general&token={finnhub_key}"
-//                 .to_string(),
-//             finnhub_key: "api_key".to_string(),
-//             num_charts: 4,
-//             chart_symbols: vec![
-//                 "FOREXCOM:SPXUSD".to_string(),
-//                 "CBOT:ZM1!".to_string(),
-//                 "CME:HE1!".to_string(),
-//                 "CBOT:ZC1!".to_string(),
-//             ],
-//         }
-//     }
-// }
-
 #[allow(dead_code)]
 pub struct Context {
     config: Config,
@@ -119,7 +87,6 @@ impl Context {
     }
 
     pub fn get_trading_client(&self) -> Trading {
-        // Lock the client asynchronously
         self.trading_client.clone()
     }
 
@@ -146,7 +113,7 @@ impl Context {
                     .expect("Unable to find parent directory of executable");
 
                 // Attempt to find the config file in the same directory as the executable
-                config_path = exe_dir.join("config/config.toml");
+                config_path = exe_dir.join("config_real.toml");
             } else {
                 // For production, check the user's config directory
                 let home_dir = std::env::var("HOME").expect("Unable to get HOME directory");

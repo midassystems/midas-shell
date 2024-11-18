@@ -13,10 +13,6 @@ clean:
 	rm -f midas-1.0.0.tar.gz
 
 build:
-	# Build frontend assets with Yarn
-	# cd gui && yarn install && yarn tauri build
-
-	# Build all Rust binaries in release mode
 	cargo build --release
 
 package:
@@ -24,21 +20,15 @@ package:
 	mkdir -p midas-release
 	mkdir -p midas-release/bin
 	mkdir -p midas-release/config
-	# mkdir -p midas-release/bundle
-	# mkdir -p midas-release/bin/engine-bin # uncommment when cpp engine ready
 
 	# Copy the CLI binary
 	cp target/release/midas-shell midas-release/bin
-	# cp -r repl/bin/* midas-release/bin/engine-bin
-
-	# Copy the Tauri app bundle (for macOS)
-	# cp -r target/release/bundle/* midas-release/bundle/
 
 	# Copy additional required files
 	cp -r config/* midas-release/config/
 	
 	# Installation script
-	cp install.sh midas-release/
+	cp ./scripts/install.sh midas-release/
 	cp README.md midas-release/
 
 	# Create a tar.gz archive of the release

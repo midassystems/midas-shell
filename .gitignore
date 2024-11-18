@@ -14,10 +14,11 @@ deploy.txt
 /postgres
 /zextra
 config_real.toml
-tickers.json
+# tickers.json
 
 sql_commands.txt
 test.sql
 command.txt
 history.txt
 *.txt
+/midas-release
