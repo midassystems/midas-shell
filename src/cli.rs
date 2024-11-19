@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use backtest::BacktestArgs;
 use clap::{Command, CommandFactory};
 use clap::{Parser, Subcommand};
-use help::{Clear, Exit};
+use help::Clear;
 use historical::HistoricalArgs;
 use live::LiveArgs;
 use std::collections::HashSet;
@@ -69,8 +69,6 @@ pub enum Commands {
     Databento(DatabentoArgs),
     /// Clear shell.
     Clear,
-    /// Exit shell.
-    Exit,
 }
 
 #[async_trait]
@@ -101,10 +99,6 @@ impl ProcessCommand for Commands {
             Commands::Databento(args) => {
                 // Delegate Databento subcommands
                 args.subcommand.process_command(context).await
-            }
-            Commands::Exit => {
-                Exit::process_command(&Exit, context).await?;
-                Ok(())
             }
         }
     }

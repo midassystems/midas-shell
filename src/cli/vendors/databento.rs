@@ -1,5 +1,6 @@
 use crate::cli::ProcessCommand;
 use crate::context::Context;
+use crate::error;
 use crate::error::{Error, Result};
 use crate::tickers::get_tickers;
 use crate::utils::get_ticker_file;
@@ -142,9 +143,8 @@ impl ProcessCommand for DatabentoCommands {
                 let start_date = process_start_date(start)?;
                 let end_date = processs_end_date(Some(end.clone()))?;
                 let schema_enum = Schema::from_str(schema.as_str())
-                    .expect(format!("Invalid schema : {}", schema.as_str()).as_str());
+                    .map_err(|_| error!(CustomError, "Invalid schema : {}", schema.as_str()))?;
 
-                // println!("{}, {}", start_date, end_date);
                 // Download
                 {
                     let mut db_client = db_client.lock().await;

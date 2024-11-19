@@ -59,6 +59,7 @@ impl Default for CommonConfig {
 
 #[allow(dead_code)]
 pub struct Context {
+    config_dir: PathBuf,
     config: Config,
     historical_client: Historical,
     trading_client: Trading,
@@ -67,7 +68,8 @@ pub struct Context {
 
 impl Context {
     pub fn init() -> Result<Self> {
-        let config_path = Self::config_path();
+        let config_dir = Self::config_dir();
+        let config_path = Self::config_path(&config_dir);
         let config = Config::from_toml(&config_path)?;
         let historical_client = Historical::new(&config.common.historical_url);
         let trading_client = Trading::new(&config.common.trading_url);
@@ -76,12 +78,21 @@ impl Context {
         )?));
 
         Ok(Context {
+            config_dir,
             config,
             historical_client,
             trading_client,
             databento_client,
         })
     }
+    pub fn get_config_dir(&self) -> PathBuf {
+        self.config_dir.clone()
+    }
+
+    pub fn get_config(&self) -> Config {
+        self.config.clone()
+    }
+
     pub fn get_historical_client(&self) -> Historical {
         self.historical_client.clone()
     }
@@ -94,33 +105,45 @@ impl Context {
         Arc::clone(&self.databento_client)
     }
 
-    fn config_path() -> PathBuf {
-        let config_path: PathBuf;
-
+    /// Returns the path to the directory with all the configuration files.
+    fn config_dir() -> PathBuf {
         if cfg!(test) {
-            // This works for unit tests
-            config_path = PathBuf::from("tests/config/config.toml");
+            // Unit tests use a test-specific directory
+            PathBuf::from("tests/config")
         } else if std::env::var("CARGO_MANIFEST_DIR").is_ok() {
-            // This works for integration tests
-            let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-            config_path = PathBuf::from(format!("{}/config_real.toml", manifest_dir));
+            // Integration tests use the manifest directory
+            PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
         } else {
-            // Check if we're in a development environment (optional)
+            // Determine runtime environment (dev or production)
             if std::env::var("RUST_ENV").unwrap_or_default() == "dev" {
                 let exe_dir = std::env::current_exe().expect("Unable to get executable directory");
-                let exe_dir = exe_dir
+                exe_dir
                     .parent()
-                    .expect("Unable to find parent directory of executable");
-
-                // Attempt to find the config file in the same directory as the executable
-                config_path = exe_dir.join("config_real.toml");
+                    .expect("Unable to find executable directory")
+                    .to_path_buf()
             } else {
-                // For production, check the user's config directory
+                // Default to the user's home `.config` directory for production
                 let home_dir = std::env::var("HOME").expect("Unable to get HOME directory");
-                config_path = PathBuf::from(format!("{}/.config/midas/config.toml", home_dir));
+                PathBuf::from(format!("{}/.config/midas", home_dir))
             }
         }
-        config_path
+    }
+    /// Returns the path to the configuration file itself.
+    fn config_path(dir: &PathBuf) -> PathBuf {
+        if cfg!(test) {
+            // Unit tests use a specific config file
+            dir.join("config.toml")
+        } else if std::env::var("CARGO_MANIFEST_DIR").is_ok() {
+            // Integration tests use a specific config file
+            dir.join("config_real.toml")
+        } else {
+            // Runtime environment
+            if std::env::var("RUST_ENV").unwrap_or_default() == "dev" {
+                dir.join("config_real.toml")
+            } else {
+                dir.join("config.toml") // Default production config file
+            }
+        }
     }
 }
 
