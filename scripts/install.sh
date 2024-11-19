@@ -2,6 +2,10 @@
 
 echo "Installing Midas shell ..."
 
+# Clean out old version
+rm /usr/local/bin/midas-shell
+rm /usr/local/bin/midas-cli
+
 # Copy binaries to /usr/local/bin
 cp bin/midas-shell /usr/local/bin/midas-shell
 cp bin/midas-cli /usr/local/bin/midas-cli

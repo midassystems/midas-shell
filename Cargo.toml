@@ -25,8 +25,9 @@ anyhow = "1.0.86"
 time = { version = "0.3", features = ["macros"] }
 walkdir = "2.3"
 async-compression = { version = "0.4.11", features = ["tokio", "zstd"] }
-# config = { path = "../config" } 
-# vendors = {path="../vendors"}
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
+
 mbn = { git = "https://github.com/anthonyb8/mbn.git", branch = "main" }
 midas_client = { git ="https://github.com/anthonyb8/midas-rs.git", branch ="main" }
 

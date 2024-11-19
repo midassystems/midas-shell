@@ -3,7 +3,7 @@ pub mod extract;
 pub mod transform;
 pub mod utils;
 
-use crate::error::{Error, Result};
+use crate::error; //Macro
 use crate::tickers::Ticker;
 use crate::utils::{load_file, user_input};
 use crate::vendors::v_databento::utils::databento_file_path;
@@ -12,6 +12,7 @@ use crate::vendors::v_databento::{
     transform::{instrument_id_map, to_mbn},
 };
 use crate::vendors::{DownloadType, Vendor};
+use crate::{Error, Result};
 use async_trait::async_trait;
 use databento::{
     dbn::{self, Dataset, SType, Schema},
@@ -346,7 +347,8 @@ impl Vendor for DatabentoClient {
         if let Some(path) = dir_path {
             dir = PathBuf::from(path);
         } else {
-            let raw_dir = std::env::var("RAW_DIR").expect("RAW_DIR not set.");
+            let raw_dir = std::env::var("RAW_DIR")
+                .map_err(|_| error!(CustomError, "Environment variable RAW_DIR is not set."))?;
             dir = PathBuf::from(raw_dir);
         }
         let (download_type, download_path) = self

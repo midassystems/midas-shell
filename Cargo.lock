@@ -2267,6 +2267,8 @@ dependencies = [
  "time",
  "tokio",
  "toml",
+ "tracing",
+ "tracing-subscriber",
  "walkdir",
  "warp",
 ]

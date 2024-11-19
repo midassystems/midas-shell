@@ -39,6 +39,31 @@ pub enum Error {
     FormatError(#[from] time::error::Format),
     #[error("MBN error: {0}")]
     MbnError(#[from] mbn::error::Error),
+    #[error("Request error: {0}")]
+    TracingError(#[from] tracing::subscriber::SetGlobalDefaultError),
+    #[error("Anyhow error: {0}")]
+    AnyhowError(#[from] anyhow::Error),
+}
+
+#[macro_export]
+macro_rules! error {
+    ($variant:ident, $($arg:tt)*) => {
+        Error::$variant(format!($($arg)*))
+    };
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_macro() {
+        let error = error!(CustomError, "Testing 123 : {}", 69);
+        let x_error = Error::CustomError(format!("Testing 123 : {}", 69));
+
+        // Test
+        assert_eq!(error.to_string(), x_error.to_string());
+    }
+}

@@ -25,14 +25,3 @@ impl ProcessCommand for Clear {
         Ok(())
     }
 }
-
-#[derive(Debug)]
-pub struct Exit;
-
-#[async_trait]
-impl ProcessCommand for Exit {
-    async fn process_command(&self, _context: &Context) -> Result<()> {
-        // WelcomeMessage::clear_terminal();
-        std::process::exit(0)
-    }
-}
