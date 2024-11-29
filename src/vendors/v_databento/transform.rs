@@ -1,3 +1,4 @@
+use crate::error;
 use crate::error::{Error, Result};
 use async_compression::tokio::bufread::ZstdDecoder;
 use databento::{dbn, historical::timeseries::AsyncDbnDecoder};
@@ -18,8 +19,10 @@ pub fn instrument_id_map(
             if let Ok(parsed_id) = id.parse::<u32>() {
                 map.insert(parsed_id, *mbn_id);
             } else {
-                return Err(Error::Conversion(format!("Failed to parse id: {}", id)));
+                return Err(error!(CustomError, "Failed to parse id: {}", id));
             }
+        } else {
+            return Err(error!(CustomError, "Ticker {} not in database.", ticker));
         }
     }
     Ok(map)
@@ -120,7 +123,7 @@ pub fn find_duplicates(mbps: &Vec<mbn::records::Mbp1Msg>) -> Result<usize> {
 mod tests {
     use super::*;
     use crate::error::Result;
-    use crate::vendors::v_databento::{extract::read_dbn_file, utils::databento_file_path};
+    use crate::vendors::v_databento::{extract::read_dbn_file, utils::databento_file_name};
     use databento::dbn::{Dataset, Schema};
     use mbn::{
         self,
@@ -129,7 +132,7 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use time;
-    fn setup(dir_path: &PathBuf) -> Result<PathBuf> {
+    fn setup(dir_path: &PathBuf, batch: bool) -> Result<PathBuf> {
         // Parameters
         let dataset = Dataset::GlbxMdp3;
         let start = time::macros::datetime!(2024-08-20 00:00 UTC);
@@ -138,21 +141,69 @@ mod tests {
         let symbols = vec!["ZM.n.0".to_string(), "GC.n.0".to_string()];
 
         // Construct file path
-        let file_path = databento_file_path(dir_path, &dataset, &schema, &start, &end, &symbols)?;
+        let file_path = databento_file_name(&dataset, &schema, &start, &end, &symbols, batch)?;
+        Ok(dir_path.join(file_path))
+    }
 
-        Ok(file_path)
+    #[tokio::test]
+    async fn test_instrument_id_map() -> Result<()> {
+        // Load DBN file
+        let file_path = setup(&PathBuf::from("tests/data/databento"), false)?;
+
+        let (_decoder, map) = read_dbn_file(file_path).await?;
+
+        // MBN instrument map
+        let mut mbn_map = HashMap::new();
+        mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
+        mbn_map.insert("GC.n.0".to_string(), 20 as u32);
+
+        // Test
+        let response = instrument_id_map(map, mbn_map)?;
+
+        // Validate
+        let mut expected_map = HashMap::new();
+        expected_map.insert(377503, 20);
+        expected_map.insert(393, 20);
+        assert_eq!(expected_map, response);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_instrument_id_map_error() -> Result<()> {
+        // Load DBN file
+        let file_path = setup(&PathBuf::from("tests/data/databento"), false)?;
+
+        let (_decoder, map) = read_dbn_file(file_path).await?;
+
+        // MBN instrument map
+        let mut mbn_map = HashMap::new();
+        mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
+
+        // Test
+        let response = instrument_id_map(map, mbn_map);
+
+        // Validate
+        assert!(
+            matches!(response, Err(_)),
+            "Expected an error, but got: {:?}",
+            response
+        );
+
+        Ok(())
     }
 
     #[tokio::test]
     async fn test_mbn_to_file() -> Result<()> {
         // Load DBN file
-        let file_path = setup(&PathBuf::from("tests/data/databento"))?;
+        let file_path = setup(&PathBuf::from("tests/data/databento"), false)?;
 
         let (mut decoder, map) = read_dbn_file(file_path).await?;
 
         // MBN instrument map
         let mut mbn_map = HashMap::new();
         mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
+        mbn_map.insert("GC.n.0".to_string(), 20 as u32);
 
         // Map DBN instrument to MBN insturment
         let new_map = instrument_id_map(map, mbn_map)?;

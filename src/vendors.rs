@@ -1,11 +1,9 @@
 pub mod v_databento;
 
 use crate::error::{Error, Result};
-use crate::tickers::Ticker;
 use async_trait::async_trait;
 use databento::dbn::Schema;
 use midas_client::historical::Historical;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use time::{self, OffsetDateTime};
 
@@ -29,7 +27,7 @@ impl TryFrom<&str> for DownloadType {
 #[async_trait]
 pub trait Vendor {
     /// Update all active tickers for vendor to present data.
-    async fn update(&mut self, tickers: Vec<Ticker>, client: &Historical) -> Result<()>;
+    async fn update(&mut self, client: &Historical) -> Result<()>;
 
     /// Download raw data to file from vendor.
     async fn download(
@@ -46,15 +44,16 @@ pub trait Vendor {
     /// Transforms data from vendor format to mbn format.
     async fn transform(
         &self,
-        mbn_map: &HashMap<String, u32>,
+        // mbn_map: &HashMap<String, u32>,
         dbn_path: &PathBuf,
         mbn_filename: &PathBuf,
+        client: &Historical,
     ) -> Result<PathBuf>;
 
     /// Loads to database, deletes MBN file after
     async fn load(
         &self,
-        mbn_map: HashMap<String, u32>,
+        // mbn_map: HashMap<String, u32>,
         download_type: &DownloadType,
         download_path: &PathBuf,
         mbn_filename: &PathBuf,

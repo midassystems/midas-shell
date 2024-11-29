@@ -43,6 +43,8 @@ pub enum Error {
     TracingError(#[from] tracing::subscriber::SetGlobalDefaultError),
     #[error("Anyhow error: {0}")]
     AnyhowError(#[from] anyhow::Error),
+    #[error("Invalid date format: {0}")]
+    InvalidDateFormat(String),
 }
 
 #[macro_export]

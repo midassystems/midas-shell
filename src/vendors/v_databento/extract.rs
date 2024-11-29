@@ -66,11 +66,11 @@ pub async fn read_dbn_batch_dir(dir_path: &PathBuf) -> Result<Vec<PathBuf>> {
 mod tests {
     use super::*;
     use crate::error::Result;
-    use crate::vendors::v_databento::utils::databento_file_path;
+    use crate::vendors::v_databento::utils::databento_file_name;
     use databento::dbn::{Dataset, Schema};
     use time;
 
-    fn setup(dir_path: &PathBuf) -> Result<PathBuf> {
+    fn setup(dir_path: &PathBuf, batch: bool) -> Result<PathBuf> {
         // Parameters
         let dataset = Dataset::GlbxMdp3;
         let start = time::macros::datetime!(2024-08-20 00:00 UTC);
@@ -79,15 +79,16 @@ mod tests {
         let symbols = vec!["ZM.n.0".to_string(), "GC.n.0".to_string()];
 
         // Construct file path
-        let file_path = databento_file_path(dir_path, &dataset, &schema, &start, &end, &symbols)?;
+        let file_path = databento_file_name(&dataset, &schema, &start, &end, &symbols, batch)?;
+        Ok(dir_path.join(file_path))
 
-        Ok(file_path)
+        // Ok(file_path)
     }
 
     #[tokio::test]
     #[ignore]
     async fn test_read_dbn_stream_file() -> Result<()> {
-        let file_path = setup(&PathBuf::from("tests/data/databento"))?;
+        let file_path = setup(&PathBuf::from("tests/data/databento"), false)?;
 
         // Test
         let (mut decoder, map) = read_dbn_file(file_path).await?;
@@ -106,7 +107,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_dbn_batch_file() -> Result<()> {
-        let dir_path = setup(&PathBuf::from("tests/data/databento/batch"))?;
+        let dir_path = setup(&PathBuf::from("tests/data/databento"), true)?;
+        println!("{:?}", dir_path);
 
         // Test
         let files = read_dbn_batch_dir(&dir_path).await?;

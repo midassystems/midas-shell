@@ -1,6 +1,7 @@
 use anyhow::Result;
 use dotenv::dotenv;
 use once_cell::sync::Lazy;
+use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
 use repl_shell::context::Context;
 use repl_shell::{self, cli::ProcessCommand};
 use serial_test::serial;
@@ -13,6 +14,160 @@ const START: &str = "2024-01-02";
 const END: &str = "2024-01-04";
 static TICKERS: Lazy<Vec<String>> = Lazy::new(|| vec!["ZM.n.0".to_string(), "GC.n.0".to_string()]);
 
+// -- Helper --
+async fn create_test_ticker(ticker: &str) -> Result<()> {
+    let context = Context::init()?;
+
+    let create_args = CreateArgs {
+        ticker: ticker.to_string(),
+        name: "Test".to_string(),
+        vendor: "databento".to_string(),
+        stype: Some("continuous".to_string()),
+        dataset: Some("GLBX.MDP3".to_string()),
+        first_available: "2024-11-27".to_string(),
+        active: true,
+    };
+
+    // Command
+    let command = repl_shell::cli::instrument::InstrumentCommands::Create(create_args);
+    command.process_command(&context).await?;
+
+    Ok(())
+}
+
+async fn cleanup_test_ticker(ticker: String) -> Result<()> {
+    let base_url = "http://localhost:8080"; // Update with your actual base URL
+    let client = midas_client::historical::Historical::new(base_url);
+    let id = client
+        .get_symbol(&ticker)
+        .await?
+        .data
+        .expect("Error getting test ticker from server.");
+
+    let _ = client.delete_symbol(&(id as i32)).await?;
+
+    Ok(())
+}
+
+// -- Instrument --
+#[tokio::test]
+#[serial]
+async fn test_create_instrument() -> Result<()> {
+    let ticker = "XYZ";
+
+    // Command
+    let context = Context::init()?;
+    let create_args = CreateArgs {
+        ticker: ticker.to_string(),
+        name: "Test".to_string(),
+        vendor: "databento".to_string(),
+        stype: Some("continuous".to_string()),
+        dataset: Some("GLBX.MDP3".to_string()),
+        first_available: "2024-11-27".to_string(),
+        active: true,
+    };
+    let command = repl_shell::cli::instrument::InstrumentCommands::Create(create_args);
+    command.process_command(&context).await?;
+
+    // Cleanup
+    cleanup_test_ticker(ticker.to_string()).await?;
+
+    Ok(())
+}
+#[tokio::test]
+#[serial]
+async fn test_get_all_instruments() -> Result<()> {
+    let ticker = "XYZ";
+    let _ = create_test_ticker(ticker).await?;
+
+    // Command
+    let context = Context::init()?;
+    let get_args = GetArgs { vendor: None };
+    let command = repl_shell::cli::instrument::InstrumentCommands::Get(get_args);
+    command.process_command(&context).await?;
+
+    // Cleanup
+    cleanup_test_ticker(ticker.to_string()).await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+#[serial]
+async fn test_get_instrument_by_vendor() -> Result<()> {
+    let ticker = "XYZ";
+    let _ = create_test_ticker(ticker).await?;
+
+    // Command
+    let context = Context::init()?;
+    let get_args = GetArgs {
+        vendor: Some("databento".to_string()),
+    };
+    let command = repl_shell::cli::instrument::InstrumentCommands::Get(get_args);
+    command.process_command(&context).await?;
+
+    // Cleanup
+    cleanup_test_ticker(ticker.to_string()).await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+#[serial]
+// #[ignore]
+async fn test_update_instrument() -> Result<()> {
+    let ticker = "XYZ";
+    let _ = create_test_ticker(ticker).await?;
+
+    // Command
+    let context = Context::init()?;
+    let args = UpdateArgs {
+        instrument_id: 264,
+        ticker: "ABC".to_string(),
+        name: "Test2".to_string(),
+        vendor: "databento".to_string(),
+        stype: Some("continuous".to_string()),
+        dataset: Some("GLBX.MDP3".to_string()),
+        first_available: "2024-01-01".to_string(),
+        last_available: "2024-11-01".to_string(),
+        active: false,
+    };
+
+    let command = repl_shell::cli::instrument::InstrumentCommands::Update(args);
+    command.process_command(&context).await?;
+
+    // Cleanup
+    cleanup_test_ticker(ticker.to_string()).await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+#[serial]
+// #[ignore]
+async fn test_delete_instrument() -> Result<()> {
+    let ticker = "XYZ";
+    let _ = create_test_ticker(ticker).await?;
+    let base_url = "http://localhost:8080"; // Update with your actual base URL
+    let client = midas_client::historical::Historical::new(base_url);
+    let id = client
+        .get_symbol(&ticker.to_string())
+        .await?
+        .data
+        .expect("Error getting test ticker from server.");
+
+    // Command
+    let context = Context::init()?;
+    let args = DeleteArgs {
+        instrument_id: id as i32,
+    };
+    let command = repl_shell::cli::instrument::InstrumentCommands::Delete(args);
+    command.process_command(&context).await?;
+
+    Ok(())
+}
+
+// -- Strategy --
 #[tokio::test]
 #[serial]
 async fn test_list_strategies() -> Result<()> {
@@ -27,6 +182,7 @@ async fn test_list_strategies() -> Result<()> {
     Ok(())
 }
 
+// -- Backtest --
 #[tokio::test]
 #[serial]
 async fn test_list_backtests() -> Result<()> {
@@ -39,22 +195,27 @@ async fn test_list_backtests() -> Result<()> {
     Ok(())
 }
 
-// NOTE: If need to test databento pulls uncomment the ignore in order, and clear the tests/data
-// files
+// -- Vendors : Databento --
 #[tokio::test]
 #[serial]
-#[ignore]
-async fn test_update() -> Result<()> {
-    std::env::set_var(MODE, "1");
+// #[ignore]
+async fn test_update_databento() -> Result<()> {
+    dotenv().ok();
+
+    // Set up
+    let ticker1 = "HE.n.0".to_string();
+
+    let _ = create_test_ticker(&ticker1).await?;
 
     // Parameters
     let context = Context::init()?;
 
-    let update_command = repl_shell::cli::vendors::databento::DatabentoCommands::Update {
-        // tickers_filepath: Some(),
-    };
+    // Mbp1
+    let update_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Update {};
+    update_cmd.process_command(&context).await?;
 
-    update_command.process_command(&context).await?;
+    // Cleaup
+    let _ = cleanup_test_ticker(ticker1).await?;
 
     Ok(())
 }
@@ -139,10 +300,19 @@ async fn test_databento_download() -> Result<()> {
 
 #[tokio::test]
 #[serial]
+#[ignore]
 async fn test_upload_get_compare() -> Result<()> {
+    // Set up
+    let ticker1 = "ZM.n.0".to_string();
+    let ticker2 = "GC.n.0".to_string();
+
+    let _ = create_test_ticker(&ticker1).await?;
+    let _ = create_test_ticker(&ticker2).await?;
+
     println!("Running test_databento_upload...");
     test_databento_upload().await?;
-    // Clean-up intermediate file
+
+    // Clean-up intermediate file (PATH WILL BE DIFFERENT ON EVERY MACHINE)
     let _ = tokio::fs::remove_file(
         "../server/data/processed_data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin",
     )
@@ -153,6 +323,10 @@ async fn test_upload_get_compare() -> Result<()> {
 
     println!("Running test_compare_files...");
     test_compare_files().await?;
+
+    // Cleaup
+    let _ = cleanup_test_ticker(ticker1).await?;
+    let _ = cleanup_test_ticker(ticker2).await?;
 
     Ok(())
 }
