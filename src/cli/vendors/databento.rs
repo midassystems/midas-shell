@@ -2,15 +2,12 @@ use crate::cli::ProcessCommand;
 use crate::context::Context;
 use crate::error;
 use crate::error::{Error, Result};
-use crate::tickers::get_tickers;
-use crate::utils::get_ticker_file;
 use crate::vendors::v_databento::compare::compare_dbn;
 use crate::vendors::DownloadType;
 use crate::vendors::Vendor;
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use databento::dbn::Schema;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr;
 use time::{format_description::well_known::Rfc3339, macros::time, OffsetDateTime};
@@ -120,15 +117,14 @@ impl ProcessCommand for DatabentoCommands {
 
         match self {
             DatabentoCommands::Update {} => {
-                let tickers_file = get_ticker_file()?;
-                let tickers = get_tickers(&tickers_file, "databento", &client).await?;
-                {
-                    // Update
-                    // Lock the mutex to get a mutable reference to DatabentoClient
-                    let mut db_client = db_client.lock().await;
-                    // let mut db_client = db_client.lock().unwrap();
-                    let _ = db_client.update(tickers, &client).await?;
-                }
+                // let tickers_file = get_ticker_file()?;
+                // let tickers = get_tickers(&tickers_file, "databento", &client).await?;
+                // {
+                // Update
+                // Lock the mutex to get a mutable reference to DatabentoClient
+                let mut db_client = db_client.lock().await;
+                let _ = db_client.update(&client).await?;
+                // }
                 Ok(())
             }
             DatabentoCommands::Download {
@@ -171,27 +167,19 @@ impl ProcessCommand for DatabentoCommands {
                 let mbn_filepath = PathBuf::from(mbn_filepath);
                 let download_type = DownloadType::try_from(dbn_downloadtype.as_str())?;
 
-                // Tickers
-                let tickers_file = get_ticker_file()?;
-                let tickers = get_tickers(&tickers_file, "databento", &client).await?;
-                let mut mbn_map = HashMap::new();
-                for ticker in tickers {
-                    mbn_map.insert(ticker.ticker.clone(), ticker.get_mbn_id()?);
-                }
-                {
-                    // Update
-                    // Lock the mutex to get a mutable reference to DatabentoClient
-                    let db_client = db_client.lock().await;
-                    let _ = db_client
-                        .load(
-                            mbn_map,
-                            &download_type,
-                            &dbn_filepath,
-                            &mbn_filepath,
-                            &client,
-                        )
-                        .await?;
-                }
+                // {
+                // Lock the mutex to get a mutable reference to DatabentoClient
+                let db_client = db_client.lock().await;
+                let _ = db_client
+                    .load(
+                        // mbn_map,
+                        &download_type,
+                        &dbn_filepath,
+                        &mbn_filepath,
+                        &client,
+                    )
+                    .await?;
+                // }
                 Ok(())
             }
             DatabentoCommands::Compare {

@@ -2,6 +2,7 @@ pub mod backtest;
 pub mod dashboard;
 mod help;
 pub mod historical;
+pub mod instrument;
 mod live;
 pub mod strategies;
 pub mod vendors;
@@ -14,6 +15,7 @@ use clap::{Command, CommandFactory};
 use clap::{Parser, Subcommand};
 use help::Clear;
 use historical::HistoricalArgs;
+use instrument::InstrumentArgs;
 use live::LiveArgs;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -57,6 +59,8 @@ pub struct CliArgs {
 pub enum Commands {
     /// Download historical price data.
     Historical(HistoricalArgs),
+    /// Instrument
+    Instrument(InstrumentArgs),
     /// Strategy related commands.
     Strategy(StrategyArgs),
     /// Backtest related commands.
@@ -77,6 +81,10 @@ impl ProcessCommand for Commands {
         match self {
             Commands::Historical(args) => {
                 args.process_command(context).await?;
+                Ok(())
+            }
+            Commands::Instrument(args) => {
+                args.subcommand.process_command(context).await?;
                 Ok(())
             }
             Commands::Strategy(strategy_args) => {

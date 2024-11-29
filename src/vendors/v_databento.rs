@@ -4,9 +4,7 @@ pub mod transform;
 pub mod utils;
 
 use crate::error; //Macro
-use crate::tickers::Ticker;
 use crate::utils::{load_file, user_input};
-use crate::vendors::v_databento::utils::databento_file_path;
 use crate::vendors::v_databento::{
     extract::{read_dbn_batch_dir, read_dbn_file},
     transform::{instrument_id_map, to_mbn},
@@ -22,14 +20,16 @@ use databento::{
     historical::timeseries::{GetRangeParams, GetRangeToFileParams},
     HistoricalClient,
 };
+use mbn::symbols::Instrument;
 use midas_client::historical::Historical;
 use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
-use time::OffsetDateTime;
+use time::{macros::time, OffsetDateTime};
 use tokio::io::AsyncReadExt;
+use utils::databento_file_name;
 
 #[derive(Debug)]
 pub struct DatabentoClient {
@@ -237,18 +237,13 @@ impl DatabentoClient {
         // Dynamic load based on size
         let download_type;
         let file_path;
+        let file_name;
 
         if size < 5.0 {
             println!("Download size is {}GB : Stream Downloading.", size);
             download_type = DownloadType::Stream;
-            file_path = databento_file_path(
-                &dir_path.join("databento"),
-                &dataset,
-                &schema,
-                &start,
-                &end,
-                &symbols,
-            )?;
+            file_name = databento_file_name(&dataset, &schema, &start, &end, &symbols, false)?;
+            file_path = dir_path.join("databento").join(file_name.clone());
 
             let _ = self
                 .fetch_historical_stream_to_file(
@@ -258,14 +253,8 @@ impl DatabentoClient {
         } else {
             println!("Download size is {}GB : Batch Downloading", size);
             download_type = DownloadType::Batch;
-            file_path = databento_file_path(
-                &dir_path.join("databento/batch"),
-                &dataset,
-                &schema,
-                &start,
-                &end,
-                &symbols,
-            )?;
+            file_name = databento_file_name(&dataset, &schema, &start, &end, &symbols, true)?;
+            file_path = dir_path.join("databento").join(file_name.clone());
 
             let _ = self
                 .fetch_historical_batch_to_file(
@@ -273,61 +262,151 @@ impl DatabentoClient {
                 )
                 .await?;
         }
+        println!("Dbn file path : {:?}", file_path);
 
-        Ok(Some((download_type, file_path)))
+        Ok(Some((download_type, file_name)))
     }
+    async fn update_ticker(
+        &mut self,
+        ticker: &Instrument,
+        start: &OffsetDateTime,
+        end: &OffsetDateTime,
+        stype: &str,
+        dataset: &str,
+        client: &Historical,
+    ) -> Result<()> {
+        // Download
+        let (download_type, file_name) = self
+            .download(
+                &vec![ticker.ticker.clone()],
+                Schema::Mbp1,
+                *start,
+                *end,
+                &dataset,
+                &stype,
+                None,
+            )
+            .await?;
+
+        // Mbn file path
+        let mbn_filename = PathBuf::from(format!(
+            "{}_{}_{}_{}.bin",
+            &ticker.ticker,
+            &stype,
+            start.date(),
+            end.date()
+        ));
+
+        // Upload
+        let _ = self
+            .load(
+                // mbn_map,
+                &download_type,
+                &file_name,
+                &mbn_filename,
+                client,
+            )
+            .await?;
+        // Update instrument
+        Ok(())
+    }
+}
+
+/// Returns date.year()+1-01-01 00:00 or the alternate date whichever is older
+fn get_earlier_of_year_end_or_date(
+    date: OffsetDateTime,
+    compare_date: OffsetDateTime,
+) -> OffsetDateTime {
+    // Calculate the start of the next year based on the provided date
+    let next_year_start = date
+        .replace_date(date.date().replace_year(date.year() + 1).unwrap())
+        .replace_time(time!(00:00));
+
+    // Return the earlier of the two dates
+    next_year_start.min(compare_date)
 }
 
 #[async_trait]
 impl Vendor for DatabentoClient {
-    async fn update(&mut self, tickers: Vec<Ticker>, client: &Historical) -> Result<()> {
-        // End date
-        let now = OffsetDateTime::now_utc();
-        let end = now.replace_time(time::macros::time!(00:00));
+    async fn update(&mut self, client: &Historical) -> Result<()> {
+        // Calculate today at the start of the day once
+        let today = OffsetDateTime::now_utc().replace_time(time!(00:00));
+
+        // Get tickers
+        let api_response = client.list_vendor_symbols(&"databento".to_string()).await?;
+        let tickers: Vec<Instrument> = api_response.data.unwrap_or_default();
 
         // Iterate over different request
-        for ticker in tickers {
-            let start = ticker.last_update;
-            println!(
-                "Ticker: {:?} | Start: {:?} => End: {:?}",
-                ticker, start, end
-            );
-
-            // Download
-            let (download_type, download_path) = self
-                .download(
-                    &vec![ticker.ticker.clone()],
-                    Schema::Mbp1,
-                    start,
-                    end,
-                    &ticker.dataset,
-                    &ticker.stype,
-                    None,
+        for mut ticker in tickers {
+            let mut end_flag = false;
+            let instrument_id = ticker.instrument_id.ok_or_else(|| {
+                error!(
+                    CustomError,
+                    "Ticker {} has no instrument_id",
+                    ticker.ticker.clone()
                 )
-                .await?;
+            })?;
 
-            // Mbn file path
-            let mbn_filename = PathBuf::from(format!(
-                "{}_{}_{}_{}.bin",
-                &ticker.ticker,
-                &ticker.stype,
-                start.date(),
-                end.date()
-            ));
-
-            let mbn_map: HashMap<String, u32> =
-                [(ticker.ticker.clone(), ticker.get_mbn_id()?)].into();
-
-            // Upload
-            let _ = self
-                .load(
-                    mbn_map,
-                    &download_type,
-                    &download_path,
-                    &mbn_filename,
-                    client,
+            let stype = ticker.stype.as_ref().ok_or_else(|| {
+                error!(
+                    CustomError,
+                    "Ticker {} has no stype.",
+                    ticker.ticker.clone()
                 )
-                .await?;
+            })?;
+
+            let dataset = ticker.dataset.as_ref().ok_or_else(|| {
+                error!(
+                    CustomError,
+                    "Ticker {} has no dataset.",
+                    ticker.ticker.clone()
+                )
+            })?;
+
+            while !end_flag {
+                let start = ticker.last_available_datetime()?;
+                let end = get_earlier_of_year_end_or_date(start, today);
+                println!("Ticker {:?} Start {:?} End {:?}", ticker.ticker, start, end);
+
+                if start == end {
+                    println!("Ticker {:?} is already up-to-date.", ticker.ticker);
+                    break; // Move to the next ticker
+                }
+
+                // Load data
+                self.update_ticker(&ticker, &start, &end, &stype, &dataset, client)
+                    .await
+                    .map_err(|e| {
+                        error!(
+                            CustomError,
+                            "Failed to upload ticker {} for start {} and end {} : {:?}",
+                            ticker.ticker,
+                            start,
+                            end,
+                            e
+                        )
+                    })?;
+
+                // Update ticker last_available field
+                ticker.last_available = end.unix_timestamp_nanos() as u64;
+                client
+                    .update_symbol(&ticker, &(instrument_id as i32))
+                    .await
+                    .map_err(|e| {
+                        error!(
+                            CustomError,
+                            "Failed to update ticker {} last_available date {} : {:?}",
+                            ticker.ticker,
+                            ticker.last_available,
+                            e
+                        )
+                    })?;
+
+                // If the end date is today, we're done with this ticker
+                if end == today {
+                    end_flag = true;
+                }
+            }
         }
 
         Ok(())
@@ -351,7 +430,7 @@ impl Vendor for DatabentoClient {
                 .map_err(|_| error!(CustomError, "Environment variable RAW_DIR is not set."))?;
             dir = PathBuf::from(raw_dir);
         }
-        let (download_type, download_path) = self
+        let (download_type, file_name) = self
             .get_historical(
                 &Dataset::from_str(&dataset)?,
                 &start,
@@ -363,16 +442,16 @@ impl Vendor for DatabentoClient {
             )
             .await?
             .ok_or(Error::NoDataError)?;
-        println!("{:?}", download_path);
 
-        Ok((download_type, download_path))
+        Ok((download_type, file_name))
     }
 
     async fn transform(
         &self,
-        mbn_map: &HashMap<String, u32>,
+        // mbn_map: &HashMap<String, u32>,
         dbn_filename: &PathBuf,
         mbn_filename: &PathBuf,
+        client: &Historical,
     ) -> Result<PathBuf> {
         // -- Extract
         let raw_dir = env::var("RAW_DIR").expect("RAW_DIR not set.");
@@ -382,11 +461,27 @@ impl Vendor for DatabentoClient {
         let dbn_map;
         (records, dbn_map) = read_dbn_file(dbn_filepath.clone()).await?;
 
+        // Mbn map
+        let api_response = client.list_vendor_symbols(&"databento".to_string()).await?;
+        let tickers: Vec<Instrument> = api_response.data.unwrap_or_default();
+        let mut mbn_map = HashMap::new();
+        for ticker in tickers {
+            let instrument_id = ticker.instrument_id.ok_or_else(|| {
+                error!(
+                    CustomError,
+                    "Ticker {} has no instrument_id.",
+                    ticker.ticker.clone()
+                )
+            })?;
+
+            mbn_map.insert(ticker.ticker.clone(), instrument_id);
+        }
+
         // -- TRANSFORM
         // Map DBN instrument to MBN insturment
+        let new_map = instrument_id_map(dbn_map, mbn_map.clone())?;
         let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
         let mbn_filepath = &PathBuf::from(processed_dir).join(mbn_filename);
-        let new_map = instrument_id_map(dbn_map, mbn_map.clone())?;
         let _ = to_mbn(&mut records, &new_map, mbn_filepath).await?;
         let _ = drop(records);
         println!("MBN Path : {:?}", mbn_filepath);
@@ -395,21 +490,19 @@ impl Vendor for DatabentoClient {
     }
     async fn load(
         &self,
-        mbn_map: HashMap<String, u32>,
+        // mbn_map: HashMap<String, u32>,
         download_type: &DownloadType,
         download_path: &PathBuf,
         mbn_filename: &PathBuf,
         client: &Historical,
     ) -> Result<()> {
         if download_type == &DownloadType::Stream {
-            let _file = self
-                .transform(&mbn_map, download_path, mbn_filename)
-                .await?;
+            let _file = self.transform(download_path, mbn_filename, client).await?;
             load_file(&mbn_filename, client).await?;
         } else {
             let files = read_dbn_batch_dir(download_path).await?;
             for file in files {
-                let filepath = self.transform(&mbn_map, &file, mbn_filename).await?;
+                let filepath = self.transform(&file, mbn_filename, client).await?;
                 let _ = load_file(&filepath, &client).await?;
             }
         }
@@ -481,18 +574,13 @@ mod tests {
     #[tokio::test]
     #[serial]
     #[ignore]
-    async fn test_stream_to_file() {
+    async fn test_stream_to_file() -> anyhow::Result<()> {
         let (mut client, dataset, start, end, symbols, schema, stype) = setup();
 
-        let file_path = databento_file_path(
-            &PathBuf::from("tests/data/databento"),
-            &dataset,
-            &schema,
-            &start,
-            &end,
-            &symbols,
-        )
-        .expect("Error creatign file_path");
+        let path = PathBuf::from("tests/data");
+        let file_name = databento_file_name(&dataset, &schema, &start, &end, &symbols, false)?;
+        let file_path = path.join(file_name);
+
         let _ = client
             .fetch_historical_stream_to_file(
                 &dataset, &start, &end, &symbols, &schema, &stype, &file_path,
@@ -501,23 +589,18 @@ mod tests {
             .expect("Error with stream.");
 
         assert!(fs::metadata(&file_path).is_ok(), "File does not exist");
+
+        Ok(())
     }
 
     #[tokio::test]
     #[serial]
     #[ignore]
-    async fn test_batch_to_file() {
+    async fn test_batch_to_file() -> anyhow::Result<()> {
         let (mut client, dataset, start, end, symbols, schema, stype) = setup();
-
-        let file_path = databento_file_path(
-            &PathBuf::from("tests/data/databento/batch"),
-            &dataset,
-            &schema,
-            &start,
-            &end,
-            &symbols,
-        )
-        .expect("Error creatign file_path");
+        let path = PathBuf::from("tests/data");
+        let file_name = databento_file_name(&dataset, &schema, &start, &end, &symbols, true)?;
+        let file_path = path.join(file_name);
 
         let _ = client
             .fetch_historical_batch_to_file(
@@ -527,6 +610,7 @@ mod tests {
             .expect("Error with stream.");
 
         assert!(fs::metadata(&file_path).is_ok(), "File does not exist");
+        Ok(())
     }
 
     #[tokio::test]
