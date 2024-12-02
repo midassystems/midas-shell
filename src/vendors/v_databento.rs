@@ -334,7 +334,7 @@ impl Vendor for DatabentoClient {
 
         // Get tickers
         let api_response = client.list_vendor_symbols(&"databento".to_string()).await?;
-        let tickers: Vec<Instrument> = api_response.data.unwrap_or_default();
+        let tickers: Vec<Instrument> = api_response.data;
 
         // Iterate over different request
         for mut ticker in tickers {
@@ -463,7 +463,7 @@ impl Vendor for DatabentoClient {
 
         // Mbn map
         let api_response = client.list_vendor_symbols(&"databento".to_string()).await?;
-        let tickers: Vec<Instrument> = api_response.data.unwrap_or_default();
+        let tickers: Vec<Instrument> = api_response.data;
         let mut mbn_map = HashMap::new();
         for ticker in tickers {
             let instrument_id = ticker.instrument_id.ok_or_else(|| {
