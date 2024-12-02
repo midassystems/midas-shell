@@ -82,7 +82,9 @@ pub fn get_ticker_file() -> crate::Result<PathBuf> {
 /// Loads a file to database, must be in the directory mounted to docker dir /data/processed_data
 pub async fn load_file(file_name: &PathBuf, client: &Historical) -> Result<()> {
     let file_string: String = file_name.to_string_lossy().into_owned();
-    let _ = client.create_mbp_from_file(&file_string).await?;
+    let response = client.create_mbp_from_file(&file_string).await?;
+
+    println!("{:?}", response);
 
     Ok(())
 }

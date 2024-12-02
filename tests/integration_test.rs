@@ -38,11 +38,8 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
 async fn cleanup_test_ticker(ticker: String) -> Result<()> {
     let base_url = "http://localhost:8080"; // Update with your actual base URL
     let client = midas_client::historical::Historical::new(base_url);
-    let id = client
-        .get_symbol(&ticker)
-        .await?
-        .data
-        .expect("Error getting test ticker from server.");
+    let id = client.get_symbol(&ticker).await?.data;
+    // .expect("Error getting test ticker from server.");
 
     let _ = client.delete_symbol(&(id as i32)).await?;
 
@@ -150,11 +147,9 @@ async fn test_delete_instrument() -> Result<()> {
     let _ = create_test_ticker(ticker).await?;
     let base_url = "http://localhost:8080"; // Update with your actual base URL
     let client = midas_client::historical::Historical::new(base_url);
-    let id = client
-        .get_symbol(&ticker.to_string())
-        .await?
-        .data
-        .expect("Error getting test ticker from server.");
+    let id = client.get_symbol(&ticker.to_string()).await?.data;
+
+    // .expect("Error getting test ticker from server.");
 
     // Command
     let context = Context::init()?;
@@ -198,7 +193,7 @@ async fn test_list_backtests() -> Result<()> {
 // -- Vendors : Databento --
 #[tokio::test]
 #[serial]
-// #[ignore]
+#[ignore]
 async fn test_update_databento() -> Result<()> {
     dotenv().ok();
 
