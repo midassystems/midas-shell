@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::vendors::v_databento::DatabentoClient;
+use crate::pipeline::vendors::v_databento::DatabentoVendor;
 use midas_client::{historical::Historical, trading::Trading};
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -63,7 +63,7 @@ pub struct Context {
     config: Config,
     historical_client: Historical,
     trading_client: Trading,
-    databento_client: Arc<Mutex<DatabentoClient>>,
+    databento_client: Arc<Mutex<DatabentoVendor>>,
 }
 
 impl Context {
@@ -73,7 +73,7 @@ impl Context {
         let config = Config::from_toml(&config_path)?;
         let historical_client = Historical::new(&config.common.historical_url);
         let trading_client = Trading::new(&config.common.trading_url);
-        let databento_client = Arc::new(Mutex::new(DatabentoClient::new(
+        let databento_client = Arc::new(Mutex::new(DatabentoVendor::new(
             &config.vendors.databento_key,
         )?));
 
@@ -101,7 +101,7 @@ impl Context {
         self.trading_client.clone()
     }
 
-    pub async fn get_databento_client(&self) -> Arc<Mutex<DatabentoClient>> {
+    pub async fn get_databento_client(&self) -> Arc<Mutex<DatabentoVendor>> {
         Arc::clone(&self.databento_client)
     }
 
