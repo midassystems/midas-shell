@@ -2,9 +2,7 @@ use crate::cli::ProcessCommand;
 use crate::context::Context;
 use crate::error;
 use crate::error::{Error, Result};
-use crate::vendors::v_databento::compare::compare_dbn;
-use crate::vendors::DownloadType;
-use crate::vendors::Vendor;
+use crate::pipeline::vendors::{v_databento::compare::compare_dbn, DownloadType, Vendor};
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use databento::dbn::Schema;
@@ -87,6 +85,16 @@ pub enum DatabentoCommands {
         dir_path: Option<String>,
     },
     /// Upload a databento file to database
+    Transform {
+        /// Schema ex. Mbp1, Ohlcv
+        #[arg(long)]
+        dbn_filepath: String,
+
+        /// File path to save the downloaded binary data.
+        #[arg(long)]
+        mbn_filepath: String,
+    },
+    /// Upload a databento file to database
     Upload {
         /// Schema ex. Mbp1, Ohlcv
         #[arg(long)]
@@ -158,6 +166,21 @@ impl ProcessCommand for DatabentoCommands {
                 }
                 Ok(())
             }
+            DatabentoCommands::Transform {
+                dbn_filepath,
+                mbn_filepath,
+            } => {
+                let dbn_filepath = PathBuf::from(dbn_filepath);
+                let mbn_filepath = PathBuf::from(mbn_filepath);
+
+                // Lock the mutex to get a mutable reference to DatabentoClient
+                let db_client = db_client.lock().await;
+                let _file = db_client
+                    .transform(&dbn_filepath, &mbn_filepath, &client, false)
+                    .await?;
+
+                Ok(())
+            }
             DatabentoCommands::Upload {
                 dbn_filepath,
                 dbn_downloadtype,
@@ -167,19 +190,14 @@ impl ProcessCommand for DatabentoCommands {
                 let mbn_filepath = PathBuf::from(mbn_filepath);
                 let download_type = DownloadType::try_from(dbn_downloadtype.as_str())?;
 
-                // {
                 // Lock the mutex to get a mutable reference to DatabentoClient
                 let db_client = db_client.lock().await;
-                let _ = db_client
-                    .load(
-                        // mbn_map,
-                        &download_type,
-                        &dbn_filepath,
-                        &mbn_filepath,
-                        &client,
-                    )
+                let files = db_client
+                    .stage(&download_type, &dbn_filepath, &mbn_filepath, &client)
                     .await?;
-                // }
+
+                let _ = db_client.upload(&client, files).await?;
+
                 Ok(())
             }
             DatabentoCommands::Compare {

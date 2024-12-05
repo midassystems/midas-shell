@@ -3,8 +3,12 @@ use dotenv::dotenv;
 use once_cell::sync::Lazy;
 use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
 use repl_shell::context::Context;
+use repl_shell::pipeline::vendors::v_databento::DatabentoVendor;
+use repl_shell::pipeline::vendors::{DownloadType, Vendor};
 use repl_shell::{self, cli::ProcessCommand};
 use serial_test::serial;
+use std::env;
+use std::path::PathBuf;
 use std::vec::Vec;
 
 // Set the environment variable for test mode
@@ -295,7 +299,7 @@ async fn test_databento_download() -> Result<()> {
 
 #[tokio::test]
 #[serial]
-#[ignore]
+// #[ignore]
 async fn test_upload_get_compare() -> Result<()> {
     // Set up
     let ticker1 = "ZM.n.0".to_string();
@@ -482,3 +486,53 @@ async fn test_compare_files() -> Result<()> {
 
     Ok(())
 }
+
+// --- Debugging tests for specific datablocks
+// #[tokio::test]
+// #[serial]
+// #[ignore]
+// async fn test_databento_processing() -> anyhow::Result<()> {
+//     dotenv().ok();
+//     let base_url = "http://localhost:8080";
+//     let client = midas_client::historical::Historical::new(base_url);
+//
+//     let api_key = env::var("DATABENTO_KEY").expect("Expected API key in env.");
+//     let databento_client =
+//         DatabentoClient::new(&api_key).expect("Failed to create DatabentoClient");
+//
+//     // Get to file
+//     test_databento_get().await?;
+//     Ok(())
+//
+//     // Transform to MBN
+// }
+//
+// async fn test_databento_get() -> Result<()> {
+//     const START: &str = "2024-01-02";
+//     const END: &str = "2024-01-04";
+//
+//     // Parameters
+//     let context = Context::init()?;
+//
+//     // Mbp1
+//     let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
+//         tickers: vec!["ZM.n.0".to_string()],
+//         start: START.to_string(),
+//         end: END.to_string(),
+//         schema: "mbp-1".to_string(),
+//         dataset: "GLBX.MDP3".to_string(),
+//         stype: "continuous".to_string(),
+//         dir_path: None,
+//     };
+//
+//     to_file_command.process_command(&context).await?;
+//     Ok(())
+// }
+
+// async fn test_load_to_staging(client: &DatabentoClient) -> anyhow::Result<()> {
+//     let dbn_file = PathBuf::from("");
+//     let mbn_file = PathBuf::from("");
+//     let download_type = DownloadType::Stream;
+//
+//     client.load(download_type, dbn_file, mbn_file, client)
+// }
