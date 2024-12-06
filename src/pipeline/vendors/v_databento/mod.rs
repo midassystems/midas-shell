@@ -340,7 +340,6 @@ mod tests {
         let base_url = "http://localhost:8080"; // Update with your actual base URL
         let client = midas_client::historical::Historical::new(base_url);
         let id = client.get_symbol(&TICKER.to_string()).await?.data;
-        // .expect("Error getting test ticker from server.");
 
         let _ = client.delete_symbol(&(id as i32)).await?;
 
@@ -399,7 +398,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-
+    // #[ignore]
     async fn test_transform() -> anyhow::Result<()> {
         dotenv().ok();
         let base_url = "http://localhost:8080"; // Update with your actual base URL
@@ -433,6 +432,7 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
+    // #[ignore]
     async fn test_stage() -> anyhow::Result<()> {
         dotenv().ok();
         let base_url = "http://localhost:8080"; // Update with your actual base URL
@@ -476,6 +476,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    // #[ignore]
     async fn test_load() -> anyhow::Result<()> {
         dotenv().ok();
         let base_url = "http://localhost:8080"; // Update with your actual base URL
@@ -505,7 +506,11 @@ mod tests {
 
         //Cleanup
         cleanup_test_ticker().await?;
-        for path in paths {
+
+        let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
+        for name in paths {
+            let path = PathBuf::from(&processed_dir).join(name);
+
             if path.exists() {
                 std::fs::remove_file(&path).expect("Failed to delete the test file.");
             }
