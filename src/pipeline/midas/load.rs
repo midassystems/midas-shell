@@ -30,10 +30,13 @@ pub async fn read_mbn_file(filepath: &PathBuf) -> Result<AsyncDecoder<BufReader<
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
-    use crate::utils::date_to_unix_nanos;
-    use dotenv::dotenv;
-    use mbn::symbols::Instrument;
+    use crate::pipeline::vendors::v_databento::{
+        extract::read_dbn_file,
+        transform::{instrument_id_map, to_mbn},
+    };
     use mbn::{
         self,
         record_enum::RecordEnum,
@@ -41,47 +44,37 @@ mod tests {
     };
     use serial_test::serial;
 
-    // -- Helper --
-    async fn create_test_ticker(ticker: &str, name: &str) -> Result<()> {
-        dotenv().ok();
-        let base_url = "http://localhost:8080"; // Update with your actual base URL
-        let client = midas_client::historical::Historical::new(base_url);
-
-        let first_available = date_to_unix_nanos("2024-08-20")?;
-        let instrument = Instrument::new(
-            None,
-            ticker,
-            name,
-            mbn::symbols::Vendors::Databento,
-            Some("continuous".to_string()),
-            Some("GLBX.MDP3".to_string()),
-            first_available as u64,
-            first_available as u64,
-            true,
+    async fn dummy_file() -> Result<PathBuf> {
+        // Load DBN file
+        let file_path = PathBuf::from(
+            "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn",
         );
 
-        client.create_symbol(&instrument).await?;
+        let (mut decoder, map) = read_dbn_file(file_path).await?;
 
-        Ok(())
-    }
+        // MBN instrument map
+        let mut mbn_map = HashMap::new();
+        mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
+        mbn_map.insert("GC.n.0".to_string(), 21 as u32);
 
-    async fn cleanup_test_ticker(ticker: &str) -> Result<()> {
-        let base_url = "http://localhost:8080"; // Update with your actual base URL
-        let client = midas_client::historical::Historical::new(base_url);
-        let id = client.get_symbol(&ticker.to_string()).await?.data;
-        // .expect("Error getting test ticker from server.");
+        // Map DBN instrument to MBN insturment
+        let new_map = instrument_id_map(map, mbn_map)?;
 
-        let _ = client.delete_symbol(&(id as i32)).await?;
+        // Test
+        let mbn_file_name =
+            PathBuf::from("tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
-        Ok(())
+        let _ = to_mbn(&mut decoder, &new_map, &mbn_file_name).await?;
+
+        Ok(mbn_file_name)
     }
 
     #[tokio::test]
     // #[ignore]
     async fn test_read_mbn_file() -> Result<()> {
-        let file_path = PathBuf::from(
-            "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.bin",
-        );
+        let file_path = dummy_file().await?;
+
+        // let file_path = PathBuf::from("tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
         // Test
         let mut decoder = read_mbn_file(&file_path).await?;
@@ -90,16 +83,22 @@ mod tests {
         let mbn_records = decoder.decode().await?;
         assert!(mbn_records.len() > 0);
 
+        //Cleanup
+        if file_path.exists() {
+            std::fs::remove_file(&file_path).expect("Failed to delete the test file.");
+        }
+
         Ok(())
     }
 
     #[tokio::test]
     #[serial]
     async fn test_mbn_to_file() -> Result<()> {
+        // Note if a fils is addee teh length woill ahve to recalculated
         let records = vec![
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -113,6 +112,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -124,7 +124,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -138,6 +138,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -149,7 +150,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -163,6 +164,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -174,7 +176,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -188,6 +190,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -199,7 +202,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -213,6 +216,7 @@ mod tests {
                 ts_recv: 1724079906416018707,
                 ts_in_delta: 13985,
                 sequence: 900098,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -232,7 +236,8 @@ mod tests {
         let mut buffer = Vec::new();
         let mut decoder = AsyncDecoder::<BufReader<File>>::from_file(path.clone()).await?;
         while let Some(record_ref) = decoder.decode_ref().await? {
-            buffer.push(RecordEnum::from_ref(record_ref)?);
+            let rec_enum = RecordEnum::from_ref(record_ref);
+            buffer.push(rec_enum?);
         }
 
         // Validate
@@ -246,67 +251,3 @@ mod tests {
         Ok(())
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::error::Result;
-//     use crate::pipeline::vendors::v_databento::{
-//         extract::read_dbn_file, utils::databento_file_name,
-//     };
-//     use databento::dbn::{Dataset, Schema};
-//     use mbn::{
-//         self,
-//         records::{BidAskPair, RecordHeader},
-//     };
-//     use std::fs;
-//     use std::path::PathBuf;
-//     use time;
-//     fn setup(dir_path: &PathBuf, batch: bool) -> Result<PathBuf> {
-//         // Parameters
-//         let dataset = Dataset::GlbxMdp3;
-//         let start = time::macros::datetime!(2024-08-20 00:00 UTC);
-//         let end = time::macros::datetime!(2024-08-20 05:00 UTC);
-//         let schema = Schema::Mbp1;
-//         let symbols = vec!["ZM.n.0".to_string(), "GC.n.0".to_string()];
-//
-//         // Construct file path
-//         let file_path = databento_file_name(&dataset, &schema, &start, &end, &symbols, batch)?;
-//         Ok(dir_path.join(file_path))
-//     }
-//
-//     #[tokio::test]
-//     async fn test_mbn_to_file() -> Result<()> {
-//         // Load DBN file
-//         let file_path = setup(&PathBuf::from("tests/data/databento"), false)?;
-//
-//         let (mut decoder, map) = read_dbn_file(file_path).await?;
-//
-//         // MBN instrument map
-//         let mut mbn_map = HashMap::new();
-//         mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
-//         mbn_map.insert("GC.n.0".to_string(), 20 as u32);
-//
-//         // Map DBN instrument to MBN insturment
-//         let new_map = instrument_id_map(map, mbn_map)?;
-//
-//         // Test
-//         let start = time::macros::datetime!(2024-08-20 00:00 UTC);
-//         let end = time::macros::datetime!(2024-08-20 05:00 UTC);
-//
-//         let mbn_file_name = PathBuf::from(format!(
-//             "tests/data/databento/{}_{}_{}_{}.bin",
-//             "ZM.n.0_GC.n.0",
-//             "mbp-1",
-//             start.date(),
-//             end.date(),
-//         ));
-//
-//         let _ = to_mbn(&mut decoder, &new_map, &mbn_file_name).await?;
-//
-//         // Validate
-//         assert!(fs::metadata(&mbn_file_name).is_ok(), "File does not exist");
-//
-//         Ok(())
-//     }
-// }

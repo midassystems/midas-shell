@@ -50,11 +50,12 @@ mod tests {
 
     #[tokio::test]
     #[serial]
+    // #[ignore]
     async fn test_find_duplicate_true() -> Result<()> {
         let records = vec![
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -68,6 +69,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -79,7 +81,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -93,6 +95,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -104,7 +107,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -118,6 +121,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -129,7 +133,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -143,6 +147,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -154,7 +159,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -168,6 +173,7 @@ mod tests {
                 ts_recv: 1724079906416018707,
                 ts_in_delta: 13985,
                 sequence: 900098,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -216,7 +222,7 @@ mod tests {
         let records = vec![
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -230,6 +236,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -241,7 +248,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -255,6 +262,7 @@ mod tests {
                 ts_recv: 1724079906416018707,
                 ts_in_delta: 13985,
                 sequence: 900098,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -266,7 +274,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -280,6 +288,7 @@ mod tests {
                 ts_recv: 1724079906416004321,
                 ts_in_delta: 17171,
                 sequence: 900097,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,
@@ -291,7 +300,7 @@ mod tests {
             },
             Mbp1Msg {
                 hd: RecordHeader {
-                    length: 20,
+                    length: 22,
                     rtype: 1,
                     instrument_id: 1333,
                     ts_event: 1724079906415347717,
@@ -305,6 +314,7 @@ mod tests {
                 ts_recv: 1724079906416018707,
                 ts_in_delta: 13985,
                 sequence: 900098,
+                discriminator: 0,
                 levels: [BidAskPair {
                     bid_px: 76000000000,
                     ask_px: 76025000000,

@@ -94,37 +94,71 @@ async fn write_unmatched_records(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pipeline::vendors::v_databento::{
+        extract::read_dbn_file,
+        transform::{instrument_id_map, to_mbn},
+    };
 
-    #[tokio::test]
-    async fn test_compare_mbn_equal() -> Result<()> {
-        let mbn_file_path1 = PathBuf::from(
-            "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.bin",
+    async fn dummy_file() -> Result<PathBuf> {
+        // Load DBN file
+        let file_path = PathBuf::from(
+            "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn",
         );
-        let mbn_file_path2 = PathBuf::from(
-            "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.bin",
-        );
+
+        let (mut decoder, map) = read_dbn_file(file_path).await?;
+
+        // MBN instrument map
+        let mut mbn_map = HashMap::new();
+        mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
+        mbn_map.insert("GC.n.0".to_string(), 21 as u32);
+
+        // Map DBN instrument to MBN insturment
+        let new_map = instrument_id_map(map, mbn_map)?;
 
         // Test
-        let x = compare_mbn(&mbn_file_path1, &mbn_file_path2).await?;
+        let mbn_file_name =
+            PathBuf::from("tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
+
+        let _ = to_mbn(&mut decoder, &new_map, &mbn_file_name).await?;
+
+        Ok(mbn_file_name)
+    }
+
+    #[tokio::test]
+    // #[ignore]
+    async fn test_compare_mbn_equal() -> Result<()> {
+        let path = dummy_file().await?;
+
+        // Test
+        let result = compare_mbn(&path, &path).await?;
 
         // Validate
-        assert!(x == ());
+        assert!(result == ());
+
+        //Cleanup
+        if path.exists() {
+            std::fs::remove_file(&path).expect("Failed to delete the test file.");
+        }
 
         Ok(())
     }
 
     #[tokio::test]
+    // #[ignore]
     async fn test_compare_mbn_unequal() -> Result<()> {
         let mbn_file_path1 = PathBuf::from("tests/data/midas/bbo1m_test.bin");
-        let mbn_file_path2 = PathBuf::from(
-            "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.bin",
-        );
+        let path = dummy_file().await?;
 
         // Test
-        let x = compare_mbn(&mbn_file_path1, &mbn_file_path2).await?;
+        let x = compare_mbn(&mbn_file_path1, &path).await?;
 
         // Validate
         assert!(x == ());
+
+        //Cleanup
+        if path.exists() {
+            std::fs::remove_file(&path).expect("Failed to delete the test file.");
+        }
 
         Ok(())
     }

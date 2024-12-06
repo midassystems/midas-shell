@@ -3,11 +3,8 @@ use dotenv::dotenv;
 use once_cell::sync::Lazy;
 use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
 use repl_shell::context::Context;
-use repl_shell::pipeline::vendors::v_databento::DatabentoVendor;
-use repl_shell::pipeline::vendors::{DownloadType, Vendor};
 use repl_shell::{self, cli::ProcessCommand};
 use serial_test::serial;
-use std::env;
 use std::path::PathBuf;
 use std::vec::Vec;
 
@@ -40,10 +37,9 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
 }
 
 async fn cleanup_test_ticker(ticker: String) -> Result<()> {
-    let base_url = "http://localhost:8080"; // Update with your actual base URL
+    let base_url = "http://localhost:8080";
     let client = midas_client::historical::Historical::new(base_url);
     let id = client.get_symbol(&ticker).await?.data;
-    // .expect("Error getting test ticker from server.");
 
     let _ = client.delete_symbol(&(id as i32)).await?;
 
@@ -53,6 +49,7 @@ async fn cleanup_test_ticker(ticker: String) -> Result<()> {
 // -- Instrument --
 #[tokio::test]
 #[serial]
+// #[ignore]
 async fn test_create_instrument() -> Result<()> {
     let ticker = "XYZ";
 
@@ -77,6 +74,7 @@ async fn test_create_instrument() -> Result<()> {
 }
 #[tokio::test]
 #[serial]
+// #[ignore]
 async fn test_get_all_instruments() -> Result<()> {
     let ticker = "XYZ";
     let _ = create_test_ticker(ticker).await?;
@@ -95,6 +93,7 @@ async fn test_get_all_instruments() -> Result<()> {
 
 #[tokio::test]
 #[serial]
+// #[ignore]
 async fn test_get_instrument_by_vendor() -> Result<()> {
     let ticker = "XYZ";
     let _ = create_test_ticker(ticker).await?;
@@ -169,6 +168,7 @@ async fn test_delete_instrument() -> Result<()> {
 // -- Strategy --
 #[tokio::test]
 #[serial]
+// #[ignore]
 async fn test_list_strategies() -> Result<()> {
     std::env::set_var(MODE, "1");
 
@@ -184,6 +184,7 @@ async fn test_list_strategies() -> Result<()> {
 // -- Backtest --
 #[tokio::test]
 #[serial]
+// #[ignore]
 async fn test_list_backtests() -> Result<()> {
     let context = Context::init()?;
 
@@ -487,52 +488,48 @@ async fn test_compare_files() -> Result<()> {
     Ok(())
 }
 
-// --- Debugging tests for specific datablocks
-// #[tokio::test]
-// #[serial]
-// #[ignore]
-// async fn test_databento_processing() -> anyhow::Result<()> {
-//     dotenv().ok();
-//     let base_url = "http://localhost:8080";
-//     let client = midas_client::historical::Historical::new(base_url);
-//
-//     let api_key = env::var("DATABENTO_KEY").expect("Expected API key in env.");
-//     let databento_client =
-//         DatabentoClient::new(&api_key).expect("Failed to create DatabentoClient");
-//
-//     // Get to file
-//     test_databento_get().await?;
-//     Ok(())
-//
-//     // Transform to MBN
-// }
-//
-// async fn test_databento_get() -> Result<()> {
-//     const START: &str = "2024-01-02";
-//     const END: &str = "2024-01-04";
-//
-//     // Parameters
-//     let context = Context::init()?;
-//
-//     // Mbp1
-//     let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
-//         tickers: vec!["ZM.n.0".to_string()],
-//         start: START.to_string(),
-//         end: END.to_string(),
-//         schema: "mbp-1".to_string(),
-//         dataset: "GLBX.MDP3".to_string(),
-//         stype: "continuous".to_string(),
-//         dir_path: None,
-//     };
-//
-//     to_file_command.process_command(&context).await?;
-//     Ok(())
-// }
+#[tokio::test]
+#[serial]
+async fn test_databento_transform() -> anyhow::Result<()> {
+    dotenv().ok();
+    let ticker = "ZM.n.0";
+    let _ = create_test_ticker(ticker).await?;
+    let ticker = "GC.n.0";
+    let _ = create_test_ticker(ticker).await?;
 
-// async fn test_load_to_staging(client: &DatabentoClient) -> anyhow::Result<()> {
-//     let dbn_file = PathBuf::from("");
-//     let mbn_file = PathBuf::from("");
-//     let download_type = DownloadType::Stream;
-//
-//     client.load(download_type, dbn_file, mbn_file, client)
-// }
+    // Parameters
+    let context = Context::init()?;
+
+    // Mbp1
+    let dbn_filepath= "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn";
+    let mbn_filepath = "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin";
+
+    let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Transform {
+        dbn_filepath: dbn_filepath.to_string(),
+        mbn_filepath: mbn_filepath.to_string(),
+    };
+
+    upload_cmd.process_command(&context).await?;
+
+    // Check duplicates
+    let duplicatecheck_cmd = repl_shell::cli::midas::MidasCommands::Duplicates {
+        filepath: mbn_filepath.to_string(),
+    };
+
+    duplicatecheck_cmd.process_command(&context).await?;
+
+    // Check duplicates
+    let compare_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
+        dbn_filepath: dbn_filepath.to_string(),
+        mbn_filepath: mbn_filepath.to_string(),
+    };
+
+    compare_cmd.process_command(&context).await?;
+
+    let path = PathBuf::from(mbn_filepath);
+    if path.exists() {
+        std::fs::remove_file(&path).expect("Failed to delete the test file.");
+    }
+
+    Ok(())
+}
