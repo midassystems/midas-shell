@@ -312,11 +312,11 @@ async fn test_upload_get_compare() -> Result<()> {
     println!("Running test_databento_upload...");
     test_databento_upload().await?;
 
-    // Clean-up intermediate file (PATH WILL BE DIFFERENT ON EVERY MACHINE)
-    let _ = tokio::fs::remove_file(
-        "../server/data/processed_data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin",
-    )
-    .await;
+    // // Clean-up intermediate file (PATH WILL BE DIFFERENT ON EVERY MACHINE)
+    // let _ = tokio::fs::remove_file(
+    //     "../server/data/processed_data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin",
+    // )
+    // .await;
 
     println!("Running test_get_records...");
     test_get_records().await?;

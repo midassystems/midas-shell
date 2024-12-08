@@ -63,14 +63,14 @@ pub async fn to_mbn(
 
         // If batch is full, write to file and clear batch
         if mbn_records.len() >= batch_size {
-            mbn_to_file(&mbn_records, file_name).await?;
+            mbn_to_file(&mbn_records, file_name, true).await?;
             mbn_records.clear();
         }
     }
 
     // Write any remaining records in the last batch
     if !mbn_records.is_empty() {
-        mbn_to_file(&mbn_records, file_name).await?;
+        mbn_to_file(&mbn_records, file_name, true).await?;
         mbn_records.clear();
     }
 
