@@ -5,7 +5,9 @@ pub mod transform;
 pub mod utils;
 
 use super::super::utils::get_earlier_of_year_end_or_date;
-use crate::error; //Macro
+use crate::error;
+use crate::pipeline::midas::checks::find_duplicates;
+//Macro
 use crate::pipeline::vendors::{DownloadType, Vendor};
 use crate::{Error, Result};
 use async_trait::async_trait;
@@ -250,7 +252,15 @@ impl Vendor for DatabentoVendor {
         let new_map = instrument_id_map(dbn_map, mbn_map.clone())?;
         let _ = to_mbn(&mut records, &new_map, mbn_filepath).await?;
         let _ = drop(records);
-        println!("MBN Path : {:?}", mbn_filepath);
+
+        // Check for duplicates
+        let duplicates_count = find_duplicates(mbn_filepath).await?;
+
+        if duplicates_count > 0 {
+            std::fs::remove_file(mbn_filepath.clone())?;
+        }
+
+        println!("Staged data path : {:?}", mbn_filepath);
 
         Ok(mbn_filepath.clone())
     }
@@ -282,16 +292,61 @@ impl Vendor for DatabentoVendor {
 
         Ok(files_list)
     }
+
     async fn upload(&self, client: &Historical, files: Vec<PathBuf>) -> Result<()> {
+        let raw_dir = std::env::var("PROCESSED_DIR").map_err(|_| {
+            error!(
+                CustomError,
+                "Environment variable PROCESSED_DIR is not set."
+            )
+        })?;
+        let mut errors = Vec::new(); // To collect errors
+
         for file in &files {
             let file_string: String = file.to_string_lossy().into_owned();
-            let response = client.create_mbp_from_file(&file_string).await?;
-            println!("{:?}", response);
-            // let _ = load_file(file, &client).await?;
+
+            // Attempt to upload the file
+            match client.create_mbp_from_file(&file_string).await {
+                Ok(response) => {
+                    println!("{:?}", response);
+                }
+                Err(e) => {
+                    eprintln!("Error uploading file {}: {}", file.display(), e);
+                    errors.push((file.clone(), e)); // Collect error with filename
+                }
+            }
+
+            let path = PathBuf::from(&raw_dir).join(file);
+            // Attempt to remove the file, even if upload fails
+            if let Err(e) = std::fs::remove_file(path.clone()) {
+                eprintln!("Error removing file {}: {}", path.display(), e);
+                errors.push((file.clone(), e.into())); // Collect error with filename
+            }
+        }
+
+        // If there are any errors, return them as a single composite error
+        if !errors.is_empty() {
+            let error_descriptions: Vec<String> = errors
+                .iter()
+                .map(|(file, err)| format!("File: {}, Error: {}", file.display(), err))
+                .collect();
+            let combined_error = format!("Errors occurred:\n{}", error_descriptions.join("\n"));
+            return Err(Error::CustomError(combined_error));
         }
 
         Ok(())
     }
+
+    // async fn upload(&self, client: &Historical, files: Vec<PathBuf>) -> Result<()> {
+    //     for file in &files {
+    //         let file_string: String = file.to_string_lossy().into_owned();
+    //         let response = client.create_mbp_from_file(&file_string).await?;
+    //         println!("{:?}", response);
+    //         // let _ = load_file(file, &client).await?;
+    //     }
+    //
+    //     Ok(())
+    // }
 }
 
 #[cfg(test)]

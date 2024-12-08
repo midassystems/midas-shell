@@ -199,7 +199,7 @@ mod tests {
 
         let file = "tests/data/test_duplicates_output.bin";
         let path = PathBuf::from(file);
-        let _ = encoder.write_to_file(&path);
+        let _ = encoder.write_to_file(&path, false);
 
         // Test
         let num_duplicates = find_duplicates(&path).await?;
@@ -340,7 +340,7 @@ mod tests {
 
         let file = "tests/data/test_duplicates_output.bin";
         let path = PathBuf::from(file);
-        let _ = encoder.write_to_file(&path);
+        let _ = encoder.write_to_file(&path, false);
 
         // Test
         // let file_path = PathBuf::from("tests/data/midas/mbp1_test.bin");

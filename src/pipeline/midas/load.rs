@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::BufReader;
 
-pub async fn mbn_to_file(records: &Vec<Mbp1Msg>, file_name: &PathBuf) -> Result<()> {
+pub async fn mbn_to_file(records: &Vec<Mbp1Msg>, file_name: &PathBuf, append: bool) -> Result<()> {
     // Create RecordRef vector.
     let mut refs = Vec::new();
     for msg in records {
@@ -17,7 +17,7 @@ pub async fn mbn_to_file(records: &Vec<Mbp1Msg>, file_name: &PathBuf) -> Result<
     let mut encoder = RecordEncoder::new(&mut buffer);
     encoder.encode_records(&refs)?;
 
-    let _ = encoder.write_to_file(file_name)?;
+    let _ = encoder.write_to_file(file_name, append)?;
 
     Ok(())
 }
@@ -230,7 +230,7 @@ mod tests {
 
         // Test
         let path = PathBuf::from("tests/data/test_mbn_to_file.bin");
-        mbn_to_file(&records, &path).await?;
+        mbn_to_file(&records, &path, false).await?;
 
         // Validate
         let mut buffer = Vec::new();
