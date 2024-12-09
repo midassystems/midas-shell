@@ -291,12 +291,14 @@ impl Vendor for DatabentoVendor {
             let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
 
             for file in files {
-                let mbn_file = PathBuf::from(&processed_dir).join(format!(
+                let mbn_file = PathBuf::from(format!(
                     "{}_{}",
                     count,
                     mbn_filename.file_name().unwrap().to_string_lossy()
                 ));
-                let _ = self.transform(&file, &mbn_file, client, false).await?;
+
+                let mbn_path = PathBuf::from(&processed_dir).join(&mbn_file);
+                let _ = self.transform(&file, &mbn_path, client, false).await?;
                 files_list.push(mbn_file);
                 count += 1;
             }
@@ -569,9 +571,9 @@ mod tests {
         // Validate
         let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
         for name in &files {
-            // let path = PathBuf::from(&processed_dir).join(name);
+            let path = PathBuf::from(&processed_dir).join(name);
 
-            let check = name.is_file();
+            let check = path.is_file();
             assert_eq!(check, true);
         }
 
