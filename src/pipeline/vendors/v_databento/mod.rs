@@ -219,10 +219,12 @@ impl Vendor for DatabentoVendor {
         } else {
             dbn_filename
         };
+        println!("{:?}", dbn_filepath);
 
         let mut records;
         let dbn_map;
         (records, dbn_map) = read_dbn_file(dbn_filepath.clone()).await?;
+        println!("{:?}", dbn_map);
 
         // Mbn map
         let api_response = client.list_vendor_symbols(&"databento".to_string()).await?;
@@ -248,6 +250,7 @@ impl Vendor for DatabentoVendor {
         } else {
             mbn_filename
         };
+        println!("{:?}", mbn_filepath);
 
         let new_map = instrument_id_map(dbn_map, mbn_map.clone())?;
         let _ = to_mbn(&mut records, &new_map, mbn_filepath).await?;
@@ -281,12 +284,22 @@ impl Vendor for DatabentoVendor {
                 .await?;
             files_list.push(mbn_filename.clone());
         } else {
-            let files = read_dbn_batch_dir(download_path).await?;
-            let count = 0;
+            let raw_dir = env::var("RAW_DIR").expect("RAW_DIR not set.");
+            let path = PathBuf::from(&raw_dir)
+                .join("databento")
+                .join(download_path);
+            let files = read_dbn_batch_dir(&path).await?;
+
+            let mut count = 0;
             for file in files {
-                let mbn_file = mbn_filename.join(format!("{}", count));
-                let _ = self.transform(&file, &mbn_file, client, true).await?;
+                let mbn_file = PathBuf::from(&raw_dir).join(format!(
+                    "{}_{}",
+                    count,
+                    mbn_filename.file_name().unwrap().to_string_lossy()
+                ));
+                let _ = self.transform(&file, &mbn_file, client, false).await?;
                 files_list.push(mbn_file);
+                count += 1;
             }
         }
 
@@ -369,14 +382,14 @@ mod tests {
     const FILENAME: &str = "GLBX.MDP3_mbp-1_HE.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn";
 
     // -- Helper --
-    async fn create_test_ticker() -> Result<()> {
+    async fn create_test_ticker(ticker: &str) -> Result<()> {
         let base_url = "http://localhost:8080"; // Update with your actual base URL
         let client = midas_client::historical::Historical::new(base_url);
 
         let first_available = date_to_unix_nanos("2024-08-20")?;
         let instrument = Instrument::new(
             None,
-            TICKER,
+            ticker,
             "Lean hogs",
             mbn::symbols::Vendors::Databento,
             Some("continuous".to_string()),
@@ -391,10 +404,10 @@ mod tests {
         Ok(())
     }
 
-    async fn cleanup_test_ticker() -> Result<()> {
+    async fn cleanup_test_ticker(ticker: &str) -> Result<()> {
         let base_url = "http://localhost:8080"; // Update with your actual base URL
         let client = midas_client::historical::Historical::new(base_url);
-        let id = client.get_symbol(&TICKER.to_string()).await?.data;
+        let id = client.get_symbol(&ticker.to_string()).await?.data;
 
         let _ = client.delete_symbol(&(id as i32)).await?;
 
@@ -465,7 +478,7 @@ mod tests {
         let databento_vendor = DatabentoVendor::new(&api_key)?;
         let dbn_file = PathBuf::from(FILENAME);
         let mbn_file = PathBuf::from("test_databento_transform.bin");
-        create_test_ticker().await?;
+        create_test_ticker("HE.n.0").await?;
 
         // Test
         let path = databento_vendor
@@ -477,7 +490,7 @@ mod tests {
         assert_eq!(check, true);
 
         //Cleanup
-        cleanup_test_ticker().await?;
+        cleanup_test_ticker("HE.n.0").await?;
 
         if path.exists() {
             std::fs::remove_file(&path).expect("Failed to delete the test file.");
@@ -488,7 +501,7 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     // #[ignore]
-    async fn test_stage() -> anyhow::Result<()> {
+    async fn test_stage_stream() -> anyhow::Result<()> {
         dotenv().ok();
         let base_url = "http://localhost:8080"; // Update with your actual base URL
         let client = midas_client::historical::Historical::new(base_url);
@@ -500,7 +513,7 @@ mod tests {
         let download_type = DownloadType::Stream;
         let dbn_file = PathBuf::from(FILENAME);
         let mbn_file = PathBuf::from("test_databento_transform.bin");
-        create_test_ticker().await?;
+        create_test_ticker("HE.n.0").await?;
 
         // Test
         let files = databento_vendor
@@ -517,7 +530,56 @@ mod tests {
         }
 
         //Cleanup
-        cleanup_test_ticker().await?;
+        cleanup_test_ticker("HE.n.0").await?;
+        for name in &files {
+            let path = PathBuf::from(&processed_dir).join(name);
+
+            if path.exists() {
+                std::fs::remove_file(&path).expect("Failed to delete the test file.");
+            }
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    // #[ignore]
+    async fn test_stage_batch() -> anyhow::Result<()> {
+        dotenv().ok();
+        let base_url = "http://localhost:8080"; // Update with your actual base URL
+        let client = midas_client::historical::Historical::new(base_url);
+
+        let api_key =
+            env::var("DATABENTO_KEY").expect("Expected API key in environment variables.");
+
+        let databento_vendor = DatabentoVendor::new(&api_key)?;
+        let download_type = DownloadType::Batch;
+        let dbn_file = PathBuf::from(
+            "batch_GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn",
+        );
+        let mbn_file = PathBuf::from("test_databento_transform.bin");
+        create_test_ticker("ZM.n.0").await?;
+        create_test_ticker("GC.n.0").await?;
+
+        // Test
+        let files = databento_vendor
+            .stage(&download_type, &dbn_file, &mbn_file, &client)
+            .await?;
+        println!("{:?}", files);
+
+        // Validate
+        let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
+        for name in &files {
+            // let path = PathBuf::from(&processed_dir).join(name);
+
+            let check = name.is_file();
+            assert_eq!(check, true);
+        }
+
+        //Cleanup
+        cleanup_test_ticker("ZM.n.0").await?;
+        cleanup_test_ticker("GC.n.0").await?;
         for name in &files {
             let path = PathBuf::from(&processed_dir).join(name);
 
@@ -544,7 +606,8 @@ mod tests {
         let download_type = DownloadType::Stream;
         let dbn_file = PathBuf::from(FILENAME);
         let mbn_file = PathBuf::from("test_databento_transform.bin");
-        create_test_ticker().await?;
+        let ticker = "HE.n.0";
+        create_test_ticker(ticker).await?;
 
         let paths = databento_vendor
             .stage(&download_type, &dbn_file, &mbn_file, &client)
@@ -560,7 +623,7 @@ mod tests {
         assert!(response.data.len() > 0);
 
         //Cleanup
-        cleanup_test_ticker().await?;
+        cleanup_test_ticker(ticker).await?;
 
         let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
         for name in paths {

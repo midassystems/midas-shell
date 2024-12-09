@@ -110,7 +110,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_dbn_stream_file() -> Result<()> {
-        let dir_path = setup(&PathBuf::from("tests/data/databento"), true)?;
+        let dir_path = PathBuf::from("tests/data/databento/batch_GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn");
+        // let dir_path = setup(&PathBuf::from("tests/data/databento"), true)?;
+
+        println!("{:?}", dir_path);
 
         // Test
         let files = read_dbn_batch_dir(&dir_path).await?;
