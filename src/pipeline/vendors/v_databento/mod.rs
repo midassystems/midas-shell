@@ -219,12 +219,10 @@ impl Vendor for DatabentoVendor {
         } else {
             dbn_filename
         };
-        println!("{:?}", dbn_filepath);
 
         let mut records;
         let dbn_map;
         (records, dbn_map) = read_dbn_file(dbn_filepath.clone()).await?;
-        println!("{:?}", dbn_map);
 
         // Mbn map
         let api_response = client.list_vendor_symbols(&"databento".to_string()).await?;
@@ -250,7 +248,6 @@ impl Vendor for DatabentoVendor {
         } else {
             mbn_filename
         };
-        println!("{:?}", mbn_filepath);
 
         let new_map = instrument_id_map(dbn_map, mbn_map.clone())?;
         let _ = to_mbn(&mut records, &new_map, mbn_filepath).await?;
@@ -291,8 +288,10 @@ impl Vendor for DatabentoVendor {
             let files = read_dbn_batch_dir(&path).await?;
 
             let mut count = 0;
+            let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
+
             for file in files {
-                let mbn_file = PathBuf::from(&raw_dir).join(format!(
+                let mbn_file = PathBuf::from(&processed_dir).join(format!(
                     "{}_{}",
                     count,
                     mbn_filename.file_name().unwrap().to_string_lossy()
@@ -566,7 +565,6 @@ mod tests {
         let files = databento_vendor
             .stage(&download_type, &dbn_file, &mbn_file, &client)
             .await?;
-        println!("{:?}", files);
 
         // Validate
         let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
