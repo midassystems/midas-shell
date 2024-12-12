@@ -1,5 +1,6 @@
 use crate::cli::ProcessCommand;
 use crate::context::Context;
+use crate::utils::run_python_engine;
 use crate::Result;
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
@@ -31,11 +32,20 @@ impl ProcessCommand for LiveCommands {
             LiveCommands::Run(args) => {
                 let strategy_name = &args.name;
                 let strategy_path = std::path::Path::new("strategies/").join(strategy_name);
-                if strategy_path.exists() && strategy_path.is_dir() {
-                    println!("Live strategy: {}", strategy_name);
-                    // Here you would implement the actual backtesting logic
+                let config_path = strategy_path.join("config.toml");
+
+                if config_path.exists() {
+                    println!("Strategy {} going Live.", strategy_name);
+
+                    // Call the Python engine with the path to the config file
+                    if let Err(e) = run_python_engine(config_path.to_str().unwrap(), "live") {
+                        println!("Error running Python engine: {}", e);
+                    }
                 } else {
-                    println!("Strategy '{}' does not exist.", strategy_name);
+                    println!(
+                        "Strategy '{}' must have a config.toml at the root level.",
+                        strategy_name
+                    );
                 }
             }
         }

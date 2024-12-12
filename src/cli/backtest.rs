@@ -35,20 +35,27 @@ impl ProcessCommand for BacktestCommands {
                 // Call the method on the client
                 let backtests = client.list_backtest().await?;
 
+                if backtests.data.len() > 0 {
+                    // Display the results
+                    println!("{:?}", backtests.data);
+                } else {
+                    // Display the results
+                    println!("No backtests found.");
+                }
+
                 // Display the results
-                println!("May not be any backtests yet: {:?}", backtests.data);
+                // println!("May not be any backtests yet: {:?}", backtests.data);
             }
             BacktestCommands::Run(args) => {
                 let strategy_name = &args.name;
                 let strategy_path = std::path::Path::new("strategies/").join(strategy_name);
-
                 let config_path = strategy_path.join("config.toml");
 
                 if config_path.exists() {
                     println!("Backtesting strategy: {}", strategy_name);
 
                     // Call the Python engine with the path to the config file
-                    if let Err(e) = run_python_engine(config_path.to_str().unwrap()) {
+                    if let Err(e) = run_python_engine(config_path.to_str().unwrap(), "backtest") {
                         println!("Error running Python engine: {}", e);
                     }
                 } else {

@@ -17,9 +17,6 @@ chmod +x /usr/local/bin/midas-cli
 # Ensure ~/.config/midas directory exists
 mkdir -p ~/.config/midas
 
-# Copy configuration files
-# cp config/* ~/.config/midas
-
 # List of configuration files
 files=("config.toml" "midas_starship.toml")
 
