@@ -130,7 +130,7 @@ pub fn user_input() -> Result<bool> {
     }
 }
 
-pub fn run_python_engine(config_path: &str) -> std::io::Result<()> {
+pub fn run_python_engine(config_path: &str, mode: &str) -> std::io::Result<()> {
     // Determine the Python executable to use from the current environment
     let python_bin = which_python()?;
 
@@ -139,6 +139,7 @@ pub fn run_python_engine(config_path: &str) -> std::io::Result<()> {
         .arg("-m") // This tells Python to run the specified module
         .arg("midas.cli") // Specify the module you want to run
         .arg(config_path) // Pass the config_path argument
+        .arg(mode) // Backtest or Live
         .status()?;
 
     if status.success() {
