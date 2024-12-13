@@ -28,9 +28,8 @@ async-compression = { version = "0.4.11", features = ["tokio", "zstd"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
 chrono = "0.4"
-
-mbn = { git = "https://github.com/anthonyb8/mbn.git", branch = "main" }
-midas_client = { git ="https://github.com/anthonyb8/midas-rs.git", branch ="main" }
+mbn = { git = "https://github.com/midassystems/mbn.git", branch = "main" }
+midas_client = { git ="https://github.com/midassystems/midas-rs.git", branch ="main" }
 
 
 [dev-dependencies]
