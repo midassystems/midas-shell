@@ -6,6 +6,7 @@ dev() {
 }
 
 run_dev() {
+	dev
 	if cd tests; then
 		RUST_ENV=dev ../target/debug/midas-shell
 	fi
