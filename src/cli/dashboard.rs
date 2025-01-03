@@ -1,7 +1,9 @@
+use crate::error;
+use crate::{Error, Result};
 use std::path::PathBuf;
 use std::process::Command;
 
-fn get_dashboard_path() -> PathBuf {
+fn get_dashboard_path() -> Result<PathBuf> {
     let mut dashboard_path: PathBuf = PathBuf::new();
 
     // Development mode: Check for the Tauri binary in the same directory as the executable
@@ -13,13 +15,6 @@ fn get_dashboard_path() -> PathBuf {
         let exe_dir = exe_path.parent().expect("Failed to get parent directory");
         dashboard_path = exe_dir.to_path_buf();
         dashboard_path.push("midas-gui");
-
-        // if cfg!(target_os = "macos") {
-        //     // In development on macOS, run the midas-gui binary from the same folder as the executable
-        // } else if cfg!(target_os = "linux") {
-        //     // In development on Linux, run the midas-gui binary from the same folder as the executable
-        //     dashboard_path.push("midas-gui");
-        // }
     } else {
         // Production mode
         if cfg!(target_os = "macos") {
@@ -30,35 +25,40 @@ fn get_dashboard_path() -> PathBuf {
             dashboard_path = PathBuf::from("/usr/local/bin/Midas");
         }
     }
-    dashboard_path
+    if dashboard_path.exists() {
+        Ok(dashboard_path)
+    } else {
+        println!("Midas app not found, please ensure it is installed.");
+        Err(Error::CustomError("Midas app not found".to_string()))
+    }
 }
 
-pub fn launch_dashboard() {
-    let path = get_dashboard_path();
-    println!("{:?}", path);
+pub fn launch_dashboard() -> Result<()> {
+    let path = get_dashboard_path()?;
+    println!("Starting the dashboard...");
 
     if std::env::var("RUST_ENV").unwrap_or_default() == "dev" {
         let _ = Command::new(path)
             .spawn()
-            .expect("Failed to start Tauri dashboard binary");
+            .map_err(|_| error!(CustomError, "Failed to start Tauri dashboard binary"))?;
     } else {
         // For macOS, use the `open` command to launch the .app bundle
         if cfg!(target_os = "macos") {
-            println!("Calling 'open {:?}'", path);
             // Use the `open` command to launch the .app bundle
             let _ = Command::new("open")
                 .arg(path)
                 .spawn()
-                .expect("Failed to start Tauri dashboard");
+                .map_err(|_| error!(CustomError, "Failed to start Tauri dashboard binary"))?;
         } else if cfg!(target_os = "linux") {
             // For linux or any platform, run the binary directly
             let _ = Command::new(path)
                 .spawn()
-                .expect("Failed to start Tauri dashboard binary");
+                .map_err(|_| error!(CustomError, "Failed to start Tauri dashboard binary"))?;
         } else {
             println!("Dashboard launch is only supported on macOS in this implementation.");
         }
     }
+    Ok(())
 }
 
 // pub fn launch_dashboard() {
