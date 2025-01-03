@@ -19,8 +19,8 @@ prodution() {
 
 options() {
 	echo "Which would you like to run?"
-	echo "1 - Build Dev"
-	echo "2 - Build Production"
+	echo "1 - Dev"
+	echo "2 - Production"
 	echo "3 - Run Dev"
 
 }
