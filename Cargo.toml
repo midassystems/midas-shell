@@ -28,6 +28,8 @@ async-compression = { version = "0.4.11", features = ["tokio", "zstd"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
 chrono = "0.4"
+colored = "2.2.0"
+console = "0.15"
 mbn = { git = "https://github.com/midassystems/mbn.git", branch = "main" }
 midas_client = { git ="https://github.com/midassystems/midas-rs.git", branch ="main" }
 
@@ -37,12 +39,11 @@ serial_test = "3.1.1"
 once_cell = "1.10.0"  # or use lazy_static
 
 [lib]
-# name="midas-server"
 path = "src/lib.rs"
 
 [[bin]]
 name = "midas-shell"
-path = "src/main.rs"
+path = "src/shell_main.rs"
 
 # Define the CLI binary
 [[bin]]

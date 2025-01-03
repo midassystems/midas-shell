@@ -1,6 +1,6 @@
 pub mod backtest;
 pub mod dashboard;
-mod help;
+pub mod help;
 pub mod historical;
 pub mod instrument;
 mod live;
