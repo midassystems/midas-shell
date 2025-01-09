@@ -22,7 +22,7 @@ fn get_dashboard_path() -> Result<PathBuf> {
             dashboard_path = PathBuf::from("/Applications/Midas.app");
         } else if cfg!(target_os = "linux") {
             // In production on Linux, the midas-gui binary is likely installed in /usr/local/bin
-            dashboard_path = PathBuf::from("/usr/local/bin/Midas");
+            dashboard_path = PathBuf::from("/opt/midas/Midas.AppImage");
         }
     }
     if dashboard_path.exists() {
