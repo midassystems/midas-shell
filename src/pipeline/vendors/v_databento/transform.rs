@@ -77,58 +77,6 @@ pub async fn to_mbn(
     Ok(())
 }
 
-// fn iterate_flag(block: &Vec<Mbp1Msg>, msg: &mut Mbp1Msg) -> Mbp1Msg {
-//     if block.iter().any(|m| m == msg) {
-//         // Duplicate found in the block
-//         msg.flags += 1;
-//         iterate_flag(block, msg)
-//     } else {
-//         msg.clone()
-//     }
-// }
-
-// pub async fn to_mbn2(
-//     decoder: &mut AsyncDbnDecoder<ZstdDecoder<BufReader<File>>>,
-//     new_map: &HashMap<u32, u32>,
-//     file_name: &PathBuf,
-// ) -> Result<()> {
-//     let mut mbn_records = Vec::new();
-//     let mut rolling_block: Vec<Mbp1Msg> = Vec::new();
-//     let batch_size = 10000;
-//
-//     // Decode each record and process it on the fly
-//     while let Some(record) = decoder.decode_record::<dbn::Mbp1Msg>().await? {
-//         let mut mbn_msg = Mbp1Msg::from(record);
-//
-//         if let Some(new_id) = new_map.get(&mbn_msg.hd.instrument_id) {
-//             mbn_msg.hd.instrument_id = *new_id;
-//         }
-//
-//         if mbn_msg.flags == 0 {
-//             let updated_msg = iterate_flag(&rolling_block, &mut mbn_msg);
-//             rolling_block.push(updated_msg);
-//         } else {
-//             rolling_block.clear();
-//         }
-//
-//         mbn_records.push(mbn_msg);
-//
-//         // If batch is full, write to file and clear batch
-//         if mbn_records.len() >= batch_size {
-//             mbn_to_file(&mbn_records, file_name).await?;
-//             mbn_records.clear();
-//         }
-//     }
-//
-//     // Write any remaining records in the last batch
-//     if !mbn_records.is_empty() {
-//         mbn_to_file(&mbn_records, file_name).await?;
-//         mbn_records.clear();
-//     }
-//
-//     Ok(())
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;

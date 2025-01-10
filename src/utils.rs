@@ -6,19 +6,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
-// pub fn update_end_date(start: &OffsetDateTime) -> crate::Result<OffsetDateTime> {
-//     let start_year = start.year();
-//
-//     let now = OffsetDateTime::now_utc();
-//     let end = now.replace_time(time::macros::time!(00:00));
-//
-//     if start_year != end.year() {
-//         end =
-//     }
-//
-//     Ok(end)
-// }
-
 pub fn date_to_unix_nanos(date_str: &str) -> Result<i64> {
     let naive_datetime = if date_str.len() == 10 {
         // Attempt to parse date-only format YYYY-MM-DD
@@ -218,7 +205,7 @@ mod tests {
     fn test_unix_to_date() -> Result<()> {
         let unix = 1635728461000000000;
 
-        //Test
+        // Test
         let iso = unix_nanos_to_date(unix)?;
 
         // Validate
