@@ -1,6 +1,5 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use once_cell::sync::Lazy;
 use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
 use repl_shell::context::Context;
 use repl_shell::{self, cli::ProcessCommand};
@@ -10,10 +9,9 @@ use std::vec::Vec;
 
 // Set the environment variable for test mode
 const MODE: &str = "MODE";
-const SYMBOLS: &str = "GC.n.0,ZM.n.0";
 const START: &str = "2024-01-02";
 const END: &str = "2024-01-04";
-static TICKERS: Lazy<Vec<String>> = Lazy::new(|| vec!["ZM.n.0".to_string(), "GC.n.0".to_string()]);
+const SYMBOLS: [&str; 2] = ["GC.n.0", "ZM.n.0"];
 
 // -- Helper --
 async fn create_test_ticker(ticker: &str) -> Result<()> {
@@ -227,12 +225,14 @@ async fn test_databento_download() -> Result<()> {
     std::env::set_var(MODE, "1");
     dotenv().ok();
 
+    let tickers: Vec<String> = SYMBOLS.iter().map(|s| s.to_string()).collect();
+
     // Parameters
     let context = Context::init()?;
 
     // Mbp1
     let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
-        tickers: TICKERS.to_vec(),
+        tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema: "mbp-1".to_string(),
@@ -245,7 +245,7 @@ async fn test_databento_download() -> Result<()> {
 
     // Ohlcv
     let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
-        tickers: TICKERS.to_vec(),
+        tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema: "ohlcv-1h".to_string(),
@@ -258,7 +258,7 @@ async fn test_databento_download() -> Result<()> {
 
     // Trades
     let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
-        tickers: TICKERS.to_vec(),
+        tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema: "trades".to_string(),
@@ -271,7 +271,7 @@ async fn test_databento_download() -> Result<()> {
 
     // Tbbo
     let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
-        tickers: TICKERS.to_vec(),
+        tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema: "tbbo".to_string(),
@@ -284,7 +284,7 @@ async fn test_databento_download() -> Result<()> {
 
     // Bbo
     let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
-        tickers: TICKERS.to_vec(),
+        tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema: "bbo-1m".to_string(),
@@ -355,6 +355,7 @@ async fn test_get_records() -> Result<()> {
     std::env::set_var(MODE, "1");
     dotenv().ok();
 
+    let tickers: Vec<String> = SYMBOLS.iter().map(|s| s.to_string()).collect();
     let context = Context::init()?;
 
     // Mbp-1
@@ -362,7 +363,7 @@ async fn test_get_records() -> Result<()> {
     let file_path = "tests/data/midas/mbp1_test.bin".to_string();
 
     let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: SYMBOLS.to_string(),
+        symbols: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema,
@@ -376,7 +377,7 @@ async fn test_get_records() -> Result<()> {
     let file_path = "tests/data/midas/ohlcv1h_test.bin".to_string();
 
     let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: SYMBOLS.to_string(),
+        symbols: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema,
@@ -390,7 +391,7 @@ async fn test_get_records() -> Result<()> {
     let file_path = "tests/data/midas/trades_test.bin".to_string();
 
     let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: SYMBOLS.to_string(),
+        symbols: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema,
@@ -404,7 +405,7 @@ async fn test_get_records() -> Result<()> {
     let file_path = "tests/data/midas/tbbo_test.bin".to_string();
 
     let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: SYMBOLS.to_string(),
+        symbols: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema,
@@ -418,7 +419,7 @@ async fn test_get_records() -> Result<()> {
     let file_path = "tests/data/midas/bbo1m_test.bin".to_string();
 
     let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: SYMBOLS.to_string(),
+        symbols: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
         schema,
