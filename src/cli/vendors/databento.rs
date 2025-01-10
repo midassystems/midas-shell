@@ -56,8 +56,8 @@ pub enum DatabentoCommands {
     Update {},
     /// Download databento data to file
     Download {
-        /// --tickers AAPL GOOGL TSLA
-        #[arg(num_args(0..))]
+        /// Tickers ex. AAPL,GOOGL,TSLA
+        #[arg(long, value_delimiter = ',')]
         tickers: Vec<String>,
 
         /// Start date in YYYY-MM-DD HH:MM:SS format.
@@ -125,14 +125,10 @@ impl ProcessCommand for DatabentoCommands {
 
         match self {
             DatabentoCommands::Update {} => {
-                // let tickers_file = get_ticker_file()?;
-                // let tickers = get_tickers(&tickers_file, "databento", &client).await?;
-                // {
-                // Update
                 // Lock the mutex to get a mutable reference to DatabentoClient
                 let mut db_client = db_client.lock().await;
                 let _ = db_client.update(&client).await?;
-                // }
+
                 Ok(())
             }
             DatabentoCommands::Download {
@@ -149,21 +145,20 @@ impl ProcessCommand for DatabentoCommands {
                 let schema_enum = Schema::from_str(schema.as_str())
                     .map_err(|_| error!(CustomError, "Invalid schema : {}", schema.as_str()))?;
 
-                // Download
-                {
-                    let mut db_client = db_client.lock().await;
-                    let _ = db_client
-                        .download(
-                            tickers,
-                            schema_enum,
-                            start_date,
-                            end_date,
-                            dataset,
-                            stype,
-                            dir_path.clone(),
-                        )
-                        .await?;
-                }
+                // {
+                let mut db_client = db_client.lock().await;
+                let _ = db_client
+                    .download(
+                        tickers,
+                        schema_enum,
+                        start_date,
+                        end_date,
+                        dataset,
+                        stype,
+                        dir_path.clone(),
+                    )
+                    .await?;
+                // }
                 Ok(())
             }
             DatabentoCommands::Transform {

@@ -5,7 +5,7 @@ pub(crate) fn print_header() {
     println!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         " ============================================================================="
-            .cyan()
+            .green()
             .bold(),
         "                    __  __  _____  _____       _      ____",
         "                   |  \\/  ||_   _||  __ \\     / \\    /  __|",
@@ -14,73 +14,73 @@ pub(crate) fn print_header() {
         "                   | |  | | _| |_ | |__| | / /   \\ \\  _\\  \\",
         "                   |_|  |_||_____||_____/ /_/     \\_\\|____/",
         " ============================================================================="
-            .cyan()
+            .green()
             .bold(),
     );
 }
 
 pub(crate) fn print_menu() {
-    let arrow = ">    ".bright_magenta();
+    let arrow = "  ";
     let lines = vec![
         format!(
             "{}{}         {}",
             arrow,
-            "Historical".cyan(),
-            "Download historical price data.".purple()
+            "Historical".green(),
+            "Download historical price data.".white()
         ),
         format!(
             "{}{}         {}",
             arrow,
-            "Instrument".cyan(),
-            "Create instruments.".purple()
+            "Instrument".green(),
+            "Create instruments.".white()
         ),
         format!(
             "{}{}           {}",
             arrow,
-            "Strategy".cyan(),
-            "Strategy related commands.".purple()
+            "Strategy".green(),
+            "Strategy related commands.".white()
         ),
         format!(
             "{}{}               {}",
             arrow,
-            "Live".cyan(),
-            "Start live trading with a specified strategy".purple(),
+            "Live".green(),
+            "Start live trading with a specified strategy".white(),
         ),
         format!(
             "{}{}            {}",
             arrow,
-            "Backest".cyan(),
-            "Run a backtest with a specified strategy".purple(),
+            "Backest".green(),
+            "Run a backtest with a specified strategy".white(),
         ),
         format!(
             "{}{}          {}",
             arrow,
-            "Dashboard".cyan(),
-            "Open the trading dashboard".purple()
+            "Dashboard".green(),
+            "Open the trading dashboard".white()
         ),
         format!(
             "{}{}              {}",
             arrow,
-            "Midas".cyan(),
-            "Commands for Midas files.".purple()
+            "Midas".green(),
+            "Commands for Midas files.".white()
         ),
         format!(
             "{}{}          {}",
             arrow,
-            "Databento".cyan(),
-            "Commands for Databento source.".purple()
+            "Databento".green(),
+            "Commands for Databento source.".white()
         ),
         format!(
             "{}{}             {}",
             arrow,
-            "Clear".cyan(),
-            " Clear the terminal window".purple(),
+            "Clear".green(),
+            " Clear the terminal window".white(),
         ),
         format!(
             "{}{}               {}",
             arrow,
-            "Help".cyan(),
-            "Show the help menu".purple()
+            "Help".green(),
+            "Show the help menu".white()
         ),
     ];
 
