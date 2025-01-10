@@ -15,6 +15,3 @@ package:
 	cp -r config/midas_starship.toml target/debug/config/midas_starship.toml
 	cp config_real.toml target/debug/config_real.toml
 
-# cp -r tests/tickers.json target/debug/config/tickers.json
-	# cp -r repl/bin/* midas-release/bin/engine-bin
-	
