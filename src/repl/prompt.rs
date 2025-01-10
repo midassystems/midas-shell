@@ -1,6 +1,7 @@
 // prompt.rs
 use chrono::Local;
 use colored::Colorize;
+// use crossterm::style::Stylize;
 use reedline::{Prompt, PromptEditMode, PromptHistorySearch};
 use std::borrow::Cow;
 use std::env;
@@ -21,13 +22,14 @@ impl MidasPrompt {
         // Get the current time dynamically
         let current_time = Local::now().format("%H:%M:%S").to_string();
 
-        // Define prompt parts with different colors
-        let shell_label = " Midas Shell".cyan();
-        let time_label = format!("| {}", current_time);
-        let arrow = "\n => ".bright_magenta();
-
         // Concatenate with spacing
-        format!("{} {} {}", shell_label, time_label, arrow)
+        format!(
+            "{} {} {} {}",
+            "|".white(),
+            current_time.green(),
+            "|".white(),
+            "~> ".blue()
+        )
     }
 
     fn starship_prompt(&self) -> String {
