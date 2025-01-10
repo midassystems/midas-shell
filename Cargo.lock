@@ -1432,7 +1432,7 @@ checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 [[package]]
 name = "mbn"
 version = "0.1.0"
-source = "git+https://github.com/midassystems/mbn.git?branch=main#82a673ea23bcd4295302d99435875753c27ed558"
+source = "git+https://github.com/midassystems/mbn.git?branch=main#63b99f7d6b6ddaf26ead57459633c1e296f9eb8d"
 dependencies = [
  "bigdecimal",
  "bytemuck",
@@ -1470,7 +1470,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 [[package]]
 name = "midas_client"
 version = "0.1.0"
-source = "git+https://github.com/midassystems/midas-rs.git?branch=main#43a47c089062320da05881ea47859716bdc2102b"
+source = "git+https://github.com/midassystems/midas-rs.git?branch=main#836e436c7464f63d35772443445edebc0e668210"
 dependencies = [
  "anyhow",
  "async-trait",

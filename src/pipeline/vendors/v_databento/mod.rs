@@ -350,17 +350,6 @@ impl Vendor for DatabentoVendor {
 
         Ok(())
     }
-
-    // async fn upload(&self, client: &Historical, files: Vec<PathBuf>) -> Result<()> {
-    //     for file in &files {
-    //         let file_string: String = file.to_string_lossy().into_owned();
-    //         let response = client.create_mbp_from_file(&file_string).await?;
-    //         println!("{:?}", response);
-    //         // let _ = load_file(file, &client).await?;
-    //     }
-    //
-    //     Ok(())
-    // }
 }
 
 #[cfg(test)]
