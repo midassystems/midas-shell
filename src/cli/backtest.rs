@@ -42,9 +42,6 @@ impl ProcessCommand for BacktestCommands {
                     // Display the results
                     println!("No backtests found.");
                 }
-
-                // Display the results
-                // println!("May not be any backtests yet: {:?}", backtests.data);
             }
             BacktestCommands::Run(args) => {
                 let strategy_name = &args.name;
