@@ -124,7 +124,7 @@ pub fn run_python_engine(config_path: &str, mode: &str) -> std::io::Result<()> {
     // Instead of specifying a script path, use the `-m` flag to run the midas module directly
     let status = Command::new(python_bin)
         .arg("-m") // This tells Python to run the specified module
-        .arg("midas.cli") // Specify the module you want to run
+        .arg("midastrader.cli") // Specify the module you want to run
         .arg(config_path) // Pass the config_path argument
         .arg(mode) // Backtest or Live
         .status()?;
