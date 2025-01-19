@@ -1,8 +1,10 @@
 use super::super::super::midas::load::mbn_to_file;
 use crate::error;
 use crate::error::{Error, Result};
+use crate::pipeline::midas::load::metadata_to_file;
 use async_compression::tokio::bufread::ZstdDecoder;
 use databento::{dbn, historical::timeseries::AsyncDbnDecoder};
+use mbn::metadata::Metadata;
 use mbn::{self, records::Mbp1Msg};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -30,6 +32,7 @@ pub fn instrument_id_map(
 }
 
 pub async fn to_mbn(
+    metadata: &Metadata,
     decoder: &mut AsyncDbnDecoder<ZstdDecoder<BufReader<File>>>,
     map: &HashMap<u32, u32>,
     file_name: &PathBuf,
@@ -37,6 +40,8 @@ pub async fn to_mbn(
     let mut mbn_records = Vec::new();
     let mut block: HashMap<Mbp1Msg, u32> = HashMap::new();
     let batch_size = 10000;
+
+    let _ = metadata_to_file(&metadata, file_name, true)?;
 
     // Decode each record and process it on the fly
     while let Some(record) = decoder.decode_record::<dbn::Mbp1Msg>().await? {
@@ -82,11 +87,16 @@ mod tests {
     use super::*;
     use crate::error::Result;
     use crate::pipeline::vendors::v_databento::extract::read_dbn_file;
+    use mbn::{
+        enums::{Dataset, Schema},
+        symbols::SymbolMap,
+    };
     use std::fs;
     use std::path::PathBuf;
     use time;
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_instrument_id_map() -> Result<()> {
         // Load DBN file
         let file_path = PathBuf::from(
@@ -113,6 +123,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_instrument_id_map_error() -> Result<()> {
         // Load DBN file
         let file_path = PathBuf::from(
@@ -139,6 +150,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_to_mbn() -> Result<()> {
         // Load DBN file
         let file_path = PathBuf::from(
@@ -167,7 +179,9 @@ mod tests {
             end.date(),
         ));
 
-        let _ = to_mbn(&mut decoder, &new_map, &mbn_file_name).await?;
+        let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
+
+        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file_name).await?;
 
         // Validate
         assert!(fs::metadata(&mbn_file_name).is_ok(), "File does not exist");

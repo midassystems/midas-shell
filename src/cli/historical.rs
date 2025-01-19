@@ -3,8 +3,10 @@ use crate::context::Context;
 use crate::error::Result;
 use async_trait::async_trait;
 use clap::Args;
-use midas_client::historical::RetrieveParams;
+use mbn::enums::{Dataset, Schema};
+use mbn::params::RetrieveParams;
 use std::fmt::Debug;
+use std::str::FromStr;
 
 #[derive(Debug, Args)]
 pub struct HistoricalArgs {
@@ -24,6 +26,10 @@ pub struct HistoricalArgs {
     #[arg(long)]
     pub schema: String,
 
+    /// Dataset ex. Equities, Futures, Option
+    #[arg(long)]
+    pub dataset: String,
+
     /// File path to save the downloaded binary data.
     #[arg(long)]
     pub file_path: String,
@@ -33,17 +39,25 @@ pub struct HistoricalArgs {
 impl ProcessCommand for HistoricalArgs {
     async fn process_command(&self, context: &Context) -> Result<()> {
         let client = context.get_historical_client();
+        let schema = Schema::from_str(&self.schema)?;
+        let dataset = Dataset::from_str(&self.dataset)?;
 
         // Attempt to create RetrieveParams and handle errors gracefully
-        let params =
-            match RetrieveParams::new(self.symbols.clone(), &self.start, &self.end, &self.schema) {
-                Ok(p) => p,
-                Err(e) => {
-                    eprintln!("Error: {}", e);
-                    return Ok(()); // Return Ok(()) to prevent crash or timeout
-                }
-            };
-
+        let params = RetrieveParams::new(
+            self.symbols.clone(),
+            &self.start,
+            &self.end,
+            schema,
+            dataset,
+        )?;
+        // {
+        //     Ok(p) => p,
+        //     Err(e) => {
+        //         eprintln!("Error: {}", e);
+        //         return Ok(()); // Return Ok(()) to prevent crash or timeout
+        //     }
+        // };
+        //
         // Attempt to get records and save them to the file
         match client.get_records_to_file(&params, &self.file_path).await {
             Ok(_) => {

@@ -2,10 +2,10 @@ pub mod v_databento;
 
 use crate::error::{Error, Result};
 use async_trait::async_trait;
-use databento::dbn::Schema;
+use mbn::enums::Dataset;
 use midas_client::historical::Historical;
+use midas_client::instrument::Instruments;
 use std::path::PathBuf;
-use time::{self, OffsetDateTime};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DownloadType {
@@ -27,36 +27,31 @@ impl TryFrom<&str> for DownloadType {
 #[async_trait]
 pub trait Vendor {
     /// Update all active tickers for vendor to present data.
-    async fn update(&mut self, client: &Historical) -> Result<()>;
-
-    /// Download raw data to file from vendor.
-    async fn download(
+    async fn update(
         &mut self,
-        tickers: &Vec<String>,
-        schema: Schema,
-        start: OffsetDateTime,
-        end: OffsetDateTime,
-        dataset: &str,
-        stype: &str,
-        dir_path: Option<String>,
-    ) -> Result<(DownloadType, PathBuf)>;
+        dataset: Dataset,
+        hist_client: &Historical,
+        instrument_client: &Instruments,
+    ) -> Result<()>;
 
     /// Transforms data from vendor format to mbn format, saves to staging file.
     async fn transform(
         &self,
+        dataset: Dataset,
         download_path: &PathBuf,
         mbn_filename: &PathBuf,
-        client: &Historical,
+        instrument_client: &Instruments,
         env_dirs: bool,
     ) -> Result<PathBuf>;
 
     /// Transforms data from vendor format to mbn format, saves to staging file.
     async fn stage(
         &self,
+        dataset: Dataset,
         download_type: &DownloadType,
         dbn_path: &PathBuf,
         mbn_filename: &PathBuf,
-        client: &Historical,
+        instrument_client: &Instruments,
     ) -> Result<Vec<PathBuf>>;
 
     /// Loads to database, deletes staging file after.

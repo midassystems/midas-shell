@@ -97,6 +97,9 @@ mod tests {
         extract::read_dbn_file,
         transform::{instrument_id_map, to_mbn},
     };
+    use mbn::enums::{Dataset, Schema};
+    use mbn::metadata::Metadata;
+    use mbn::symbols::SymbolMap;
 
     async fn dummy_file() -> Result<PathBuf> {
         // Load DBN file
@@ -113,17 +116,19 @@ mod tests {
 
         // Map DBN instrument to MBN insturment
         let new_map = instrument_id_map(map, mbn_map)?;
+        let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
 
         // Test
         let mbn_file_name =
-            PathBuf::from("tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
+            PathBuf::from("tests/data/comparedbn_ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
-        let _ = to_mbn(&mut decoder, &new_map, &mbn_file_name).await?;
+        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file_name).await?;
 
         Ok(mbn_file_name)
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     // #[ignore]
     async fn test_compare_dbn() -> Result<()> {
         let mbn_path = dummy_file().await?;
