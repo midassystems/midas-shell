@@ -1,6 +1,6 @@
 use crate::error::Result;
 use crate::pipeline::vendors::v_databento::DatabentoVendor;
-use midas_client::{historical::Historical, trading::Trading};
+use midas_client::{historical::Historical, instrument::Instruments, trading::Trading};
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -43,6 +43,7 @@ pub struct CommonConfig {
     pub log_level: String,
     pub historical_url: String,
     pub trading_url: String,
+    pub instrument_url: String,
     pub api_key: String,
 }
 
@@ -52,6 +53,7 @@ impl Default for CommonConfig {
             log_level: "info".to_string(),
             historical_url: "http://127.0.0.1:8080".to_string(),
             trading_url: "http://127.0.0.1:8081".to_string(),
+            instrument_url: "http://127.0.0.1:8082".to_string(),
             api_key: "api_key".to_string(),
         }
     }
@@ -63,6 +65,7 @@ pub struct Context {
     config: Config,
     historical_client: Historical,
     trading_client: Trading,
+    instrument_client: Instruments,
     databento_client: Arc<Mutex<DatabentoVendor>>,
 }
 
@@ -73,6 +76,8 @@ impl Context {
         let config = Config::from_toml(&config_path)?;
         let historical_client = Historical::new(&config.common.historical_url);
         let trading_client = Trading::new(&config.common.trading_url);
+        let instrument_client = Instruments::new(&config.common.instrument_url);
+
         let databento_client = Arc::new(Mutex::new(DatabentoVendor::new(
             &config.vendors.databento_key,
         )?));
@@ -82,6 +87,7 @@ impl Context {
             config,
             historical_client,
             trading_client,
+            instrument_client,
             databento_client,
         })
     }
@@ -99,6 +105,10 @@ impl Context {
 
     pub fn get_trading_client(&self) -> Trading {
         self.trading_client.clone()
+    }
+
+    pub fn get_instrument_client(&self) -> Instruments {
+        self.instrument_client.clone()
     }
 
     pub async fn get_databento_client(&self) -> Arc<Mutex<DatabentoVendor>> {

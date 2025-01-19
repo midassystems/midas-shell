@@ -45,6 +45,11 @@ fn collect_clap_commands(cmd: &Command, commands: &mut HashSet<String>) {
     }
 }
 
+/// Utility function to handle errors
+fn handle_error(command_name: &str, error: impl std::fmt::Display) {
+    eprintln!("Error in {} command: {}", command_name, error);
+}
+
 /// Trait for processing commands
 #[async_trait]
 pub trait ProcessCommand {
@@ -84,7 +89,9 @@ impl ProcessCommand for Commands {
     async fn process_command(&self, context: &Context) -> Result<()> {
         match self {
             Commands::Historical(args) => {
-                args.process_command(context).await?;
+                if let Err(e) = args.process_command(context).await {
+                    handle_error("Historical", e);
+                }
                 Ok(())
             }
             Commands::Instrument(args) => {
