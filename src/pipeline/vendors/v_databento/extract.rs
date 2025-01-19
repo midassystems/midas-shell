@@ -68,6 +68,7 @@ mod tests {
     use crate::error::Result;
 
     #[tokio::test]
+    #[serial_test::serial]
     // #[ignore]
     async fn test_read_dbn_file() -> Result<()> {
         let file_path = PathBuf::from(
@@ -93,6 +94,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_read_dbn_stream_file() -> Result<()> {
         let dir_path = PathBuf::from("tests/data/databento/batch_GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn");
 

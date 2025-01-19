@@ -22,6 +22,7 @@ pub async fn compare_mbn(mbn_filepath1: &PathBuf, mbn_filepath2: &PathBuf) -> Re
         if batch1.len() < batch_size && !decoder_done {
             while let Some(record1) = decoder1.decode_ref().await? {
                 let record_enum = RecordEnum::from_ref(record1)?;
+                // println!("{:?}", record_enum);
                 let ts_event = record_enum.header().ts_event;
                 batch1.entry(ts_event).or_default().push(record_enum);
             }
@@ -98,6 +99,11 @@ mod tests {
         extract::read_dbn_file,
         transform::{instrument_id_map, to_mbn},
     };
+    use mbn::metadata::Metadata;
+    use mbn::{
+        enums::{Dataset, Schema},
+        symbols::SymbolMap,
+    };
 
     async fn dummy_file() -> Result<PathBuf> {
         // Load DBN file
@@ -111,20 +117,21 @@ mod tests {
         let mut mbn_map = HashMap::new();
         mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
         mbn_map.insert("GC.n.0".to_string(), 21 as u32);
-
         // Map DBN instrument to MBN insturment
         let new_map = instrument_id_map(map, mbn_map)?;
 
         // Test
+        let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
         let mbn_file_name =
-            PathBuf::from("tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
+            PathBuf::from("tests/data/compare_ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
-        let _ = to_mbn(&mut decoder, &new_map, &mbn_file_name).await?;
+        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file_name).await?;
 
         Ok(mbn_file_name)
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     // #[ignore]
     async fn test_compare_mbn_equal() -> Result<()> {
         let path = dummy_file().await?;
@@ -144,6 +151,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     // #[ignore]
     async fn test_compare_mbn_unequal() -> Result<()> {
         let mbn_file_path1 = PathBuf::from("tests/data/midas/bbo1m_test.bin");

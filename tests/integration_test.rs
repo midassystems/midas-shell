@@ -1,9 +1,12 @@
 use anyhow::Result;
 use dotenv::dotenv;
+use mbn::enums::Dataset;
+use mbn::vendors::Vendors;
 use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
 use repl_shell::context::Context;
 use repl_shell::{self, cli::ProcessCommand};
 use serial_test::serial;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::vec::Vec;
 
@@ -16,13 +19,17 @@ const SYMBOLS: [&str; 2] = ["GC.n.0", "ZM.n.0"];
 // -- Helper --
 async fn create_test_ticker(ticker: &str) -> Result<()> {
     let context = Context::init()?;
+    let mut vendor_data = HashMap::new();
+    vendor_data.insert("stype".to_string(), "continuous".to_string());
+    vendor_data.insert("schema".to_string(), "mbp-1".to_string());
+    vendor_data.insert("dataset".to_string(), "GLBX.MDP3".to_string());
 
     let create_args = CreateArgs {
         ticker: ticker.to_string(),
         name: "Test".to_string(),
+        dataset: "futures".to_string(),
         vendor: "databento".to_string(),
-        stype: Some("continuous".to_string()),
-        dataset: Some("GLBX.MDP3".to_string()),
+        vendor_data,
         first_available: "2024-11-27".to_string(),
         active: true,
     };
@@ -34,10 +41,12 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
     Ok(())
 }
 
-async fn cleanup_test_ticker(ticker: String) -> Result<()> {
-    let base_url = "http://localhost:8080";
-    let client = midas_client::historical::Historical::new(base_url);
-    let id = client.get_symbol(&ticker).await?.data;
+async fn cleanup_test_ticker(ticker: String, dataset: &Dataset) -> Result<()> {
+    let base_url = "http://localhost:8082";
+    let client = midas_client::instrument::Instruments::new(base_url);
+    let id = client.get_symbol(&ticker, dataset).await?.data[0]
+        .instrument_id
+        .unwrap();
 
     let _ = client.delete_symbol(&(id as i32)).await?;
 
@@ -50,15 +59,20 @@ async fn cleanup_test_ticker(ticker: String) -> Result<()> {
 // #[ignore]
 async fn test_create_instrument() -> Result<()> {
     let ticker = "XYZ";
+    let mut vendor_data = HashMap::new();
+    vendor_data.insert("stype".to_string(), "continuous".to_string());
+    vendor_data.insert("schema".to_string(), "mbp-1".to_string());
+    vendor_data.insert("dataset".to_string(), "GLBX.MDP3".to_string());
 
     // Command
     let context = Context::init()?;
+    let dataset = Dataset::Futures;
     let create_args = CreateArgs {
         ticker: ticker.to_string(),
         name: "Test".to_string(),
+        dataset: dataset.as_str().to_string(),
         vendor: "databento".to_string(),
-        stype: Some("continuous".to_string()),
-        dataset: Some("GLBX.MDP3".to_string()),
+        vendor_data,
         first_available: "2024-11-27".to_string(),
         active: true,
     };
@@ -66,7 +80,7 @@ async fn test_create_instrument() -> Result<()> {
     command.process_command(&context).await?;
 
     // Cleanup
-    cleanup_test_ticker(ticker.to_string()).await?;
+    cleanup_test_ticker(ticker.to_string(), &dataset).await?;
 
     Ok(())
 }
@@ -75,16 +89,20 @@ async fn test_create_instrument() -> Result<()> {
 // #[ignore]
 async fn test_get_all_instruments() -> Result<()> {
     let ticker = "XYZ";
+    let dataset = Dataset::Futures;
     let _ = create_test_ticker(ticker).await?;
 
     // Command
     let context = Context::init()?;
-    let get_args = GetArgs { vendor: None };
+    let get_args = GetArgs {
+        dataset: dataset.as_str().to_string(),
+        vendor: None,
+    };
     let command = repl_shell::cli::instrument::InstrumentCommands::Get(get_args);
     command.process_command(&context).await?;
 
     // Cleanup
-    cleanup_test_ticker(ticker.to_string()).await?;
+    cleanup_test_ticker(ticker.to_string(), &dataset).await?;
 
     Ok(())
 }
@@ -94,18 +112,21 @@ async fn test_get_all_instruments() -> Result<()> {
 // #[ignore]
 async fn test_get_instrument_by_vendor() -> Result<()> {
     let ticker = "XYZ";
+    let dataset = Dataset::Futures;
+    let vendor = Vendors::Databento;
     let _ = create_test_ticker(ticker).await?;
 
     // Command
     let context = Context::init()?;
     let get_args = GetArgs {
-        vendor: Some("databento".to_string()),
+        dataset: dataset.as_str().to_string(),
+        vendor: Some(vendor.as_str().to_string()),
     };
     let command = repl_shell::cli::instrument::InstrumentCommands::Get(get_args);
     command.process_command(&context).await?;
 
     // Cleanup
-    cleanup_test_ticker(ticker.to_string()).await?;
+    cleanup_test_ticker(ticker.to_string(), &dataset).await?;
 
     Ok(())
 }
@@ -118,14 +139,20 @@ async fn test_update_instrument() -> Result<()> {
     let _ = create_test_ticker(ticker).await?;
 
     // Command
+    let mut vendor_data = HashMap::new();
+    vendor_data.insert("stype".to_string(), "continuous".to_string());
+    vendor_data.insert("schema".to_string(), "mbp-1".to_string());
+    vendor_data.insert("dataset".to_string(), "GLBX.MDP3".to_string());
+
+    let dataset = Dataset::Futures;
     let context = Context::init()?;
     let args = UpdateArgs {
         instrument_id: 264,
         ticker: "ABC".to_string(),
         name: "Test2".to_string(),
+        dataset: dataset.as_str().to_string(),
         vendor: "databento".to_string(),
-        stype: Some("continuous".to_string()),
-        dataset: Some("GLBX.MDP3".to_string()),
+        vendor_data,
         first_available: "2024-01-01".to_string(),
         last_available: "2024-11-01".to_string(),
         active: false,
@@ -135,7 +162,7 @@ async fn test_update_instrument() -> Result<()> {
     command.process_command(&context).await?;
 
     // Cleanup
-    cleanup_test_ticker(ticker.to_string()).await?;
+    cleanup_test_ticker(ticker.to_string(), &dataset).await?;
 
     Ok(())
 }
@@ -145,12 +172,14 @@ async fn test_update_instrument() -> Result<()> {
 // #[ignore]
 async fn test_delete_instrument() -> Result<()> {
     let ticker = "XYZ";
+    let dataset = Dataset::Futures;
     let _ = create_test_ticker(ticker).await?;
-    let base_url = "http://localhost:8080"; // Update with your actual base URL
-    let client = midas_client::historical::Historical::new(base_url);
-    let id = client.get_symbol(&ticker.to_string()).await?.data;
 
-    // .expect("Error getting test ticker from server.");
+    let base_url = "http://localhost:8082";
+    let client = midas_client::instrument::Instruments::new(base_url);
+    let id = client.get_symbol(&ticker.to_string(), &dataset).await?.data[0]
+        .instrument_id
+        .unwrap();
 
     // Command
     let context = Context::init()?;
@@ -202,6 +231,7 @@ async fn test_update_databento() -> Result<()> {
 
     // Set up
     let ticker1 = "HE.n.0".to_string();
+    let dataset = Dataset::Futures;
 
     let _ = create_test_ticker(&ticker1).await?;
 
@@ -209,11 +239,13 @@ async fn test_update_databento() -> Result<()> {
     let context = Context::init()?;
 
     // Mbp1
-    let update_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Update {};
+    let update_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Update {
+        dataset: dataset.as_str().to_string(),
+    };
     update_cmd.process_command(&context).await?;
 
     // Cleaup
-    let _ = cleanup_test_ticker(ticker1).await?;
+    let _ = cleanup_test_ticker(ticker1, &dataset).await?;
 
     Ok(())
 }
@@ -305,12 +337,13 @@ async fn test_upload_get_compare() -> Result<()> {
     // Set up
     let ticker1 = "ZM.n.0".to_string();
     let ticker2 = "GC.n.0".to_string();
+    let dataset = Dataset::Futures;
 
     let _ = create_test_ticker(&ticker1).await?;
     let _ = create_test_ticker(&ticker2).await?;
 
     println!("Running test_databento_upload...");
-    test_databento_upload().await?;
+    test_databento_upload(&dataset).await?;
 
     // // Clean-up intermediate file (PATH WILL BE DIFFERENT ON EVERY MACHINE)
     // let _ = tokio::fs::remove_file(
@@ -319,19 +352,19 @@ async fn test_upload_get_compare() -> Result<()> {
     // .await;
 
     println!("Running test_get_records...");
-    test_get_records().await?;
+    test_get_records(&dataset).await?;
 
     println!("Running test_compare_files...");
     test_compare_files().await?;
 
     // Cleaup
-    let _ = cleanup_test_ticker(ticker1).await?;
-    let _ = cleanup_test_ticker(ticker2).await?;
+    let _ = cleanup_test_ticker(ticker1, &dataset).await?;
+    let _ = cleanup_test_ticker(ticker2, &dataset).await?;
 
     Ok(())
 }
 
-async fn test_databento_upload() -> Result<()> {
+async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
     std::env::set_var(MODE, "1");
     dotenv().ok();
 
@@ -340,6 +373,7 @@ async fn test_databento_upload() -> Result<()> {
 
     // Mbp1
     let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Upload {
+        dataset: dataset.as_str().to_string(),
         dbn_filepath: "GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn"
             .to_string(),
         dbn_downloadtype: "stream".to_string(),
@@ -351,7 +385,7 @@ async fn test_databento_upload() -> Result<()> {
     Ok(())
 }
 
-async fn test_get_records() -> Result<()> {
+async fn test_get_records(dataset: &Dataset) -> Result<()> {
     std::env::set_var(MODE, "1");
     dotenv().ok();
 
@@ -367,6 +401,7 @@ async fn test_get_records() -> Result<()> {
         start: START.to_string(),
         end: END.to_string(),
         schema,
+        dataset: dataset.as_str().to_string(),
         file_path,
     };
 
@@ -381,6 +416,7 @@ async fn test_get_records() -> Result<()> {
         start: START.to_string(),
         end: END.to_string(),
         schema,
+        dataset: dataset.as_str().to_string(),
         file_path,
     };
 
@@ -395,6 +431,7 @@ async fn test_get_records() -> Result<()> {
         start: START.to_string(),
         end: END.to_string(),
         schema,
+        dataset: dataset.as_str().to_string(),
         file_path,
     };
 
@@ -409,6 +446,7 @@ async fn test_get_records() -> Result<()> {
         start: START.to_string(),
         end: END.to_string(),
         schema,
+        dataset: dataset.as_str().to_string(),
         file_path,
     };
 
@@ -423,6 +461,7 @@ async fn test_get_records() -> Result<()> {
         start: START.to_string(),
         end: END.to_string(),
         schema,
+        dataset: dataset.as_str().to_string(),
         file_path,
     };
 
@@ -495,9 +534,11 @@ async fn test_databento_transform() -> anyhow::Result<()> {
     dotenv().ok();
     let ticker = "ZM.n.0";
     let _ = create_test_ticker(ticker).await?;
+
     let ticker = "GC.n.0";
     let _ = create_test_ticker(ticker).await?;
 
+    let dataset = Dataset::Futures;
     // Parameters
     let context = Context::init()?;
 
@@ -506,6 +547,7 @@ async fn test_databento_transform() -> anyhow::Result<()> {
     let mbn_filepath = "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin";
 
     let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Transform {
+        dataset: dataset.as_str().to_string(),
         dbn_filepath: dbn_filepath.to_string(),
         mbn_filepath: mbn_filepath.to_string(),
     };
