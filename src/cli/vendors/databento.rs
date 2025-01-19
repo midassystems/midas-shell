@@ -5,7 +5,8 @@ use crate::error::{Error, Result};
 use crate::pipeline::vendors::{v_databento::compare::compare_dbn, DownloadType, Vendor};
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
-use databento::dbn::Schema;
+use databento::dbn;
+use mbn::enums::Dataset;
 use std::path::PathBuf;
 use std::str::FromStr;
 use time::{format_description::well_known::Rfc3339, macros::time, OffsetDateTime};
@@ -53,20 +54,16 @@ pub struct DatabentoArgs {
 #[derive(Debug, Subcommand)]
 pub enum DatabentoCommands {
     /// Standard update, adds mbp for tickers already in the database for entire previous day.
-    Update {},
+    Update {
+        /// Schema ex. Mbp1, Ohlcv
+        #[arg(long)]
+        dataset: String,
+    },
     /// Download databento data to file
     Download {
         /// Tickers ex. AAPL,GOOGL,TSLA
         #[arg(long, value_delimiter = ',')]
         tickers: Vec<String>,
-
-        /// Start date in YYYY-MM-DD HH:MM:SS format.
-        #[arg(long)]
-        start: String,
-
-        /// End date in YYYY-MM-DD HH:MM:SS format.
-        #[arg(long)]
-        end: String,
 
         /// Schema ex. Mbp1, Ohlcv
         #[arg(long)]
@@ -80,12 +77,23 @@ pub enum DatabentoCommands {
         #[arg(long)]
         stype: String,
 
+        /// Start date in YYYY-MM-DD HH:MM:SS format.
+        #[arg(long)]
+        start: String,
+
+        /// End date in YYYY-MM-DD HH:MM:SS format.
+        #[arg(long)]
+        end: String,
+
         /// Optional path, if not provided will defualt to RAW_DIR variable.
         #[arg(long)]
         dir_path: Option<String>,
     },
     /// Upload a databento file to database
     Transform {
+        #[arg(long)]
+        dataset: String,
+
         /// Schema ex. Mbp1, Ohlcv
         #[arg(long)]
         dbn_filepath: String,
@@ -96,6 +104,9 @@ pub enum DatabentoCommands {
     },
     /// Upload a databento file to database
     Upload {
+        #[arg(long)]
+        dataset: String,
+
         /// Schema ex. Mbp1, Ohlcv
         #[arg(long)]
         dbn_filepath: String,
@@ -120,17 +131,23 @@ pub enum DatabentoCommands {
 #[async_trait]
 impl ProcessCommand for DatabentoCommands {
     async fn process_command(&self, context: &Context) -> Result<()> {
-        let client = context.get_historical_client();
+        let hist_client = context.get_historical_client();
+        let inst_client = context.get_instrument_client();
         let db_client = context.get_databento_client().await;
 
         match self {
-            DatabentoCommands::Update {} => {
+            DatabentoCommands::Update { dataset } => {
                 // Lock the mutex to get a mutable reference to DatabentoClient
                 let mut db_client = db_client.lock().await;
-                let _ = db_client.update(&client).await?;
+                let dataset = Dataset::from_str(dataset)?;
+
+                let _ = db_client
+                    .update(dataset, &hist_client, &inst_client)
+                    .await?;
 
                 Ok(())
             }
+
             DatabentoCommands::Download {
                 tickers,
                 start,
@@ -142,41 +159,48 @@ impl ProcessCommand for DatabentoCommands {
             } => {
                 let start_date = process_start_date(start)?;
                 let end_date = processs_end_date(Some(end.clone()))?;
-                let schema_enum = Schema::from_str(schema.as_str())
+                let schema_enum = dbn::Schema::from_str(schema.as_str())
                     .map_err(|_| error!(CustomError, "Invalid schema : {}", schema.as_str()))?;
+                let dataset_enum = dbn::Dataset::from_str(dataset.as_str())
+                    .map_err(|_| error!(CustomError, "Invalid dataset : {}", dataset.as_str()))?;
+                let stype_enum = dbn::SType::from_str(stype.as_str())
+                    .map_err(|_| error!(CustomError, "Invalid stype : {}", stype.as_str()))?;
 
-                // {
                 let mut db_client = db_client.lock().await;
                 let _ = db_client
                     .download(
                         tickers,
-                        schema_enum,
+                        &schema_enum,
+                        &dataset_enum,
+                        &stype_enum,
                         start_date,
                         end_date,
-                        dataset,
-                        stype,
                         dir_path.clone(),
                     )
                     .await?;
-                // }
+
                 Ok(())
             }
             DatabentoCommands::Transform {
+                dataset,
                 dbn_filepath,
                 mbn_filepath,
             } => {
                 let dbn_filepath = PathBuf::from(dbn_filepath);
                 let mbn_filepath = PathBuf::from(mbn_filepath);
+                let dataset = Dataset::from_str(dataset.as_str())
+                    .map_err(|_| error!(CustomError, "Invalid dataset : {}", dataset.as_str()))?;
 
                 // Lock the mutex to get a mutable reference to DatabentoClient
                 let db_client = db_client.lock().await;
                 let _file = db_client
-                    .transform(&dbn_filepath, &mbn_filepath, &client, false)
+                    .transform(dataset, &dbn_filepath, &mbn_filepath, &inst_client, false)
                     .await?;
 
                 Ok(())
             }
             DatabentoCommands::Upload {
+                dataset,
                 dbn_filepath,
                 dbn_downloadtype,
                 mbn_filepath,
@@ -184,14 +208,22 @@ impl ProcessCommand for DatabentoCommands {
                 let dbn_filepath = PathBuf::from(dbn_filepath);
                 let mbn_filepath = PathBuf::from(mbn_filepath);
                 let download_type = DownloadType::try_from(dbn_downloadtype.as_str())?;
+                let dataset_enum = Dataset::from_str(dataset.as_str())
+                    .map_err(|_| error!(CustomError, "Invalid dataset : {}", dataset.as_str()))?;
 
                 // Lock the mutex to get a mutable reference to DatabentoClient
                 let db_client = db_client.lock().await;
                 let files = db_client
-                    .stage(&download_type, &dbn_filepath, &mbn_filepath, &client)
+                    .stage(
+                        dataset_enum,
+                        &download_type,
+                        &dbn_filepath,
+                        &mbn_filepath,
+                        &inst_client,
+                    )
                     .await?;
 
-                let _ = db_client.upload(&client, files).await?;
+                let _ = db_client.upload(&hist_client, files).await?;
 
                 Ok(())
             }

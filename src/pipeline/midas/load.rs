@@ -1,9 +1,26 @@
 use crate::error::Result;
 use mbn::decode::AsyncDecoder;
-use mbn::{self, encode::RecordEncoder, record_ref::RecordRef, records::Mbp1Msg};
+use mbn::metadata::Metadata;
+use mbn::{
+    self,
+    encode::{MetadataEncoder, RecordEncoder},
+    record_ref::RecordRef,
+    records::Mbp1Msg,
+};
 use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::BufReader;
+
+pub fn metadata_to_file(metadata: &Metadata, file_name: &PathBuf, append: bool) -> Result<()> {
+    // Encode metadata
+    let mut buffer = Vec::new();
+    let mut encoder = MetadataEncoder::new(&mut buffer);
+    encoder.encode_metadata(&metadata)?;
+
+    let _ = encoder.write_to_file(file_name, append);
+
+    Ok(())
+}
 
 pub async fn mbn_to_file(records: &Vec<Mbp1Msg>, file_name: &PathBuf, append: bool) -> Result<()> {
     // Create RecordRef vector.
@@ -42,6 +59,10 @@ mod tests {
         record_enum::RecordEnum,
         records::{BidAskPair, Mbp1Msg, RecordHeader},
     };
+    use mbn::{
+        enums::{Dataset, Schema},
+        symbols::SymbolMap,
+    };
     use serial_test::serial;
 
     async fn dummy_file() -> Result<PathBuf> {
@@ -59,18 +80,20 @@ mod tests {
 
         // Map DBN instrument to MBN insturment
         let new_map = instrument_id_map(map, mbn_map)?;
+        let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
 
         // Test
         let mbn_file_name =
-            PathBuf::from("tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
+            PathBuf::from("tests/data/load_ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
-        let _ = to_mbn(&mut decoder, &new_map, &mbn_file_name).await?;
+        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file_name).await?;
 
         Ok(mbn_file_name)
     }
 
     #[tokio::test]
     // #[ignore]
+    #[serial_test::serial]
     async fn test_read_mbn_file() -> Result<()> {
         let file_path = dummy_file().await?;
 
