@@ -120,12 +120,13 @@ mod tests {
         // Note if a fils is addee teh length woill ahve to recalculated
         let records = vec![
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(
+                    // length: 22,
+                    // rtype: 1,
+                    1333,
+                    1724079906415347717,
+                    0,
+                ),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -146,12 +147,13 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(
+                    // length: 22,
+                    // rtype: 1,
+                    1333,
+                    1724079906415347717,
+                    0,
+                ),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -172,12 +174,13 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(
+                    // length: 22,
+                    // rtype: 1,
+                    1333,
+                    1724079906415347717,
+                    0,
+                ),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -198,12 +201,13 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(
+                    // length: 22,
+                    // rtype: 1,
+                    1333,
+                    1724079906415347717,
+                    0,
+                ),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -224,12 +228,13 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(
+                    // length: 22,
+                    // rtype: 1,
+                    1333,
+                    1724079906415347717,
+                    0,
+                ),
                 price: 76050000000,
                 size: 1,
                 action: 84,

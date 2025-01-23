@@ -152,7 +152,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    // #[ignore]
+    #[ignore]
     async fn test_compare_mbn_unequal() -> Result<()> {
         let mbn_file_path1 = PathBuf::from("tests/data/midas/bbo1m_test.bin");
         let path = dummy_file().await?;

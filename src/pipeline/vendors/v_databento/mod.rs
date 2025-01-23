@@ -389,7 +389,8 @@ mod tests {
     const START: OffsetDateTime = time::macros::datetime!(2024-08-20 00:00 UTC);
     const END: OffsetDateTime = time::macros::datetime!(2024-08-20 05:00 UTC);
     const TICKER: &str = "HE.n.0";
-    const FILENAME: &str = "GLBX.MDP3_mbp-1_HE.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn";
+    const FILENAME: &str =
+        "GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn";
 
     // -- Helper --
     async fn create_test_ticker(ticker: &str) -> Result<u32> {
@@ -397,6 +398,7 @@ mod tests {
         let client = midas_client::instrument::Instruments::new(base_url);
 
         let first_available = date_to_unix_nanos("2024-08-20")?;
+        let expiration_date = date_to_unix_nanos("2025-08-20")?;
         let schema = dbn::Schema::from_str("mbp-1")?;
         let dataset = dbn::Dataset::from_str("GLBX.MDP3")?;
         let stype = dbn::SType::from_str("raw_symbol")?;
@@ -414,6 +416,7 @@ mod tests {
             vendor_data.encode(),
             first_available as u64,
             first_available as u64,
+            expiration_date as u64,
             true,
         );
 
@@ -486,7 +489,9 @@ mod tests {
         let databento_vendor = DatabentoVendor::new(&api_key)?;
         let dbn_file = PathBuf::from(FILENAME);
         let mbn_file = PathBuf::from("test_databento_transform.bin");
-        let id = create_test_ticker("HE.n.0").await?;
+        let mut ids = Vec::new();
+        ids.push(create_test_ticker("GC.n.0").await?);
+        ids.push(create_test_ticker("ZM.n.0").await?);
 
         // Test
         let path = databento_vendor
@@ -498,7 +503,9 @@ mod tests {
         assert_eq!(check, true);
 
         //Cleanup
-        cleanup_test_ticker(id).await?;
+        for id in ids {
+            cleanup_test_ticker(id).await?;
+        }
 
         if path.exists() {
             std::fs::remove_file(&path).expect("Failed to delete the test file.");
@@ -521,7 +528,9 @@ mod tests {
         let download_type = DownloadType::Stream;
         let dbn_file = PathBuf::from(FILENAME);
         let mbn_file = PathBuf::from("test_databento_transform.bin");
-        let id = create_test_ticker("HE.n.0").await?;
+        let mut ids = Vec::new();
+        ids.push(create_test_ticker("GC.n.0").await?);
+        ids.push(create_test_ticker("ZM.n.0").await?);
 
         // Test
         let files = databento_vendor
@@ -544,7 +553,10 @@ mod tests {
         }
 
         //Cleanup
-        cleanup_test_ticker(id).await?;
+        for id in ids {
+            cleanup_test_ticker(id).await?;
+        }
+
         for name in &files {
             let path = PathBuf::from(&processed_dir).join(name);
 
@@ -632,8 +644,9 @@ mod tests {
         let download_type = DownloadType::Stream;
         let dbn_file = PathBuf::from(FILENAME);
         let mbn_file = PathBuf::from("test_databento_transform.bin");
-        let ticker = "HE.n.0";
-        let id = create_test_ticker(ticker).await?;
+        let mut ids = Vec::new();
+        ids.push(create_test_ticker("ZM.n.0").await?);
+        ids.push(create_test_ticker("GC.n.0").await?);
 
         let paths = databento_vendor
             .stage(
@@ -644,7 +657,6 @@ mod tests {
                 &inst_client,
             )
             .await?;
-        println!("{:?}", paths);
 
         // Test
         let _ = databento_vendor.upload(&hist_client, paths.clone()).await?;
@@ -657,12 +669,15 @@ mod tests {
             "2024-08-21",
             Schema::Mbp1,
             Dataset::Futures,
+            mbn::enums::Stype::Raw,
         )?;
         let response = hist_client.get_records(&params).await?;
         assert!(response.data.len() > 0);
 
         //Cleanup
-        cleanup_test_ticker(id).await?;
+        for id in ids {
+            cleanup_test_ticker(id).await?;
+        }
 
         let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
         for name in paths {

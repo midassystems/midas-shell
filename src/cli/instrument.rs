@@ -107,6 +107,9 @@ pub struct CreateArgs {
     /// first date available in database
     #[arg(long)]
     pub first_available: String,
+    /// last date available in database
+    #[arg(long)]
+    pub expiration_date: String,
     /// Active status
     #[arg(long)]
     pub active: bool,
@@ -148,6 +151,9 @@ pub struct UpdateArgs {
     /// last date available in database
     #[arg(long)]
     pub last_available: String,
+    /// last date available in database
+    #[arg(long)]
+    pub expiration_date: String,
     /// Active status
     #[arg(long)]
     pub active: bool,
@@ -169,6 +175,8 @@ impl ProcessCommand for InstrumentCommands {
                 let vendor = Vendors::from_str(&args.vendor)?;
                 let dataset = Dataset::from_str(&args.dataset)?;
                 let first_available = date_to_unix_nanos(&args.first_available)?;
+                let expiration_date = date_to_unix_nanos(&args.expiration_date)?;
+
                 let vendor_data_map = args.vendor_data.clone();
                 let vendor_data = construct_vendor_data(&vendor, vendor_data_map).map_err(|e| {
                     Error::CustomError(format!("Failed to parse vendor data '{}'", e))
@@ -183,6 +191,7 @@ impl ProcessCommand for InstrumentCommands {
                     vendor_data.encode(),
                     first_available as u64,
                     first_available as u64,
+                    expiration_date as u64,
                     args.active,
                 );
 
@@ -230,6 +239,7 @@ impl ProcessCommand for InstrumentCommands {
                 let dataset = Dataset::from_str(&args.dataset)?;
                 let first_available = date_to_unix_nanos(&args.first_available)?;
                 let last_available = date_to_unix_nanos(&args.last_available)?;
+                let expiration_date = date_to_unix_nanos(&args.expiration_date)?;
                 let vendor_data_map = args.vendor_data.clone();
                 let vendor_data = construct_vendor_data(&vendor, vendor_data_map).map_err(|e| {
                     Error::CustomError(format!("Failed to parse vendor data '{}'", e))
@@ -244,6 +254,7 @@ impl ProcessCommand for InstrumentCommands {
                     vendor_data.encode(),
                     first_available as u64,
                     last_available as u64,
+                    expiration_date as u64,
                     args.active,
                 );
                 match client.update_symbol(&instrument).await {
