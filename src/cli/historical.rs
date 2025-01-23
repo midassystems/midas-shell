@@ -3,7 +3,7 @@ use crate::context::Context;
 use crate::error::Result;
 use async_trait::async_trait;
 use clap::Args;
-use mbn::enums::{Dataset, Schema};
+use mbn::enums::{Dataset, Schema, Stype};
 use mbn::params::RetrieveParams;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -30,6 +30,10 @@ pub struct HistoricalArgs {
     #[arg(long)]
     pub dataset: String,
 
+    /// Dataset ex. Equities, Futures, Option
+    #[arg(long)]
+    pub stype: String,
+
     /// File path to save the downloaded binary data.
     #[arg(long)]
     pub file_path: String,
@@ -41,6 +45,7 @@ impl ProcessCommand for HistoricalArgs {
         let client = context.get_historical_client();
         let schema = Schema::from_str(&self.schema)?;
         let dataset = Dataset::from_str(&self.dataset)?;
+        let stype = Stype::from_str(&self.stype)?;
 
         // Attempt to create RetrieveParams and handle errors gracefully
         let params = RetrieveParams::new(
@@ -49,6 +54,7 @@ impl ProcessCommand for HistoricalArgs {
             &self.end,
             schema,
             dataset,
+            stype,
         )?;
         // {
         //     Ok(p) => p,

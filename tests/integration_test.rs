@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use mbn::enums::Dataset;
+use mbn::enums::{Dataset, Stype};
 use mbn::vendors::Vendors;
 use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
 use repl_shell::context::Context;
@@ -31,6 +31,7 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
         vendor: "databento".to_string(),
         vendor_data,
         first_available: "2024-11-27".to_string(),
+        expiration_date: "2025-01-27".to_string(),
         active: true,
     };
 
@@ -74,6 +75,7 @@ async fn test_create_instrument() -> Result<()> {
         vendor: "databento".to_string(),
         vendor_data,
         first_available: "2024-11-27".to_string(),
+        expiration_date: "2025-01-27".to_string(),
         active: true,
     };
     let command = repl_shell::cli::instrument::InstrumentCommands::Create(create_args);
@@ -155,6 +157,8 @@ async fn test_update_instrument() -> Result<()> {
         vendor_data,
         first_available: "2024-01-01".to_string(),
         last_available: "2024-11-01".to_string(),
+        expiration_date: "2025-01-27".to_string(),
+
         active: false,
     };
 
@@ -338,6 +342,7 @@ async fn test_upload_get_compare() -> Result<()> {
     let ticker1 = "ZM.n.0".to_string();
     let ticker2 = "GC.n.0".to_string();
     let dataset = Dataset::Futures;
+    let stype = Stype::Raw;
 
     let _ = create_test_ticker(&ticker1).await?;
     let _ = create_test_ticker(&ticker2).await?;
@@ -352,7 +357,7 @@ async fn test_upload_get_compare() -> Result<()> {
     // .await;
 
     println!("Running test_get_records...");
-    test_get_records(&dataset).await?;
+    test_get_records(&dataset, &stype).await?;
 
     println!("Running test_compare_files...");
     test_compare_files().await?;
@@ -385,7 +390,7 @@ async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
     Ok(())
 }
 
-async fn test_get_records(dataset: &Dataset) -> Result<()> {
+async fn test_get_records(dataset: &Dataset, stype: &Stype) -> Result<()> {
     std::env::set_var(MODE, "1");
     dotenv().ok();
 
@@ -402,6 +407,7 @@ async fn test_get_records(dataset: &Dataset) -> Result<()> {
         end: END.to_string(),
         schema,
         dataset: dataset.as_str().to_string(),
+        stype: stype.as_str().to_string(),
         file_path,
     };
 
@@ -417,13 +423,14 @@ async fn test_get_records(dataset: &Dataset) -> Result<()> {
         end: END.to_string(),
         schema,
         dataset: dataset.as_str().to_string(),
+        stype: stype.as_str().to_string(),
         file_path,
     };
 
     historical_command.process_command(&context).await?;
 
     // Trades
-    let schema = "trade".to_string();
+    let schema = "trades".to_string();
     let file_path = "tests/data/midas/trades_test.bin".to_string();
 
     let historical_command = repl_shell::cli::historical::HistoricalArgs {
@@ -432,6 +439,7 @@ async fn test_get_records(dataset: &Dataset) -> Result<()> {
         end: END.to_string(),
         schema,
         dataset: dataset.as_str().to_string(),
+        stype: stype.as_str().to_string(),
         file_path,
     };
 
@@ -447,6 +455,7 @@ async fn test_get_records(dataset: &Dataset) -> Result<()> {
         end: END.to_string(),
         schema,
         dataset: dataset.as_str().to_string(),
+        stype: stype.as_str().to_string(),
         file_path,
     };
 
@@ -462,6 +471,7 @@ async fn test_get_records(dataset: &Dataset) -> Result<()> {
         end: END.to_string(),
         schema,
         dataset: dataset.as_str().to_string(),
+        stype: stype.as_str().to_string(),
         file_path,
     };
 
@@ -530,6 +540,7 @@ async fn test_compare_files() -> Result<()> {
 
 #[tokio::test]
 #[serial]
+// #[ignore]
 async fn test_databento_transform() -> anyhow::Result<()> {
     dotenv().ok();
     let ticker = "ZM.n.0";
