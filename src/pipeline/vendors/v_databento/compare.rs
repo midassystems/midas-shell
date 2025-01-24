@@ -78,7 +78,7 @@ pub async fn compare_dbn(dbn_filepath: PathBuf, mbn_filepath: &PathBuf) -> Resul
     }
 
     // Return an error if there are unmatched records in either batch
-    if mbn_batch.is_empty() || unmatched_dbn_records.is_empty() {
+    if mbn_batch.is_empty() && unmatched_dbn_records.is_empty() {
         println!("All records match successfully.");
     } else {
         eprintln!(
