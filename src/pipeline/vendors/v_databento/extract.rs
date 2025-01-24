@@ -28,7 +28,7 @@ pub async fn read_dbn_file(
     // Read the file
     let decoder = AsyncDbnDecoder::from_zstd_file(filepath)
         .await
-        .map_err(|_| anyhow::anyhow!("Error opeing dbn file."))?;
+        .map_err(|_| Error::CustomError("Error opening dbn file.".to_string()))?;
 
     // Extract Symbol Map
     let metadata = decoder.metadata();

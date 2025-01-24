@@ -41,8 +41,8 @@ pub enum Error {
     MbnError(#[from] mbn::error::Error),
     #[error("Request error: {0}")]
     TracingError(#[from] tracing::subscriber::SetGlobalDefaultError),
-    #[error("Anyhow error: {0}")]
-    AnyhowError(#[from] anyhow::Error),
+    // #[error("Anyhow error: {0}")]
+    // AnyhowError(#[from] anyhow::Error),
     #[error("Invalid date format: {0}")]
     InvalidDateFormat(String),
 }
