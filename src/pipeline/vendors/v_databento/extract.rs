@@ -87,6 +87,7 @@ mod tests {
             let record_enum = record.as_enum()?;
             dbn_records.push(record_enum.to_owned());
         }
+        println!("{:?}", dbn_records.len());
 
         assert!(dbn_records.len() > 0);
 

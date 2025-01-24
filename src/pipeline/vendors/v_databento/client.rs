@@ -229,6 +229,11 @@ impl DatabentoClient {
             file_name = databento_file_name(&dataset, &schema, &start, &end, &symbols, false)?;
             file_path = dir_path.join("databento").join(file_name.clone());
 
+            // Ensure the directory exists
+            if let Some(parent_dir) = file_path.parent() {
+                std::fs::create_dir_all(parent_dir)?;
+            }
+
             let _ = self
                 .fetch_historical_stream_to_file(
                     &dataset, &start, &end, &symbols, &schema, &stype, &file_path,
@@ -239,6 +244,11 @@ impl DatabentoClient {
             download_type = DownloadType::Batch;
             file_name = databento_file_name(&dataset, &schema, &start, &end, &symbols, true)?;
             file_path = dir_path.join("databento").join(file_name.clone());
+
+            // Ensure the directory exists
+            if let Some(parent_dir) = file_path.parent() {
+                std::fs::create_dir_all(parent_dir)?;
+            }
 
             let _ = self
                 .fetch_historical_batch_to_file(

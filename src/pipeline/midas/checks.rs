@@ -54,12 +54,7 @@ mod tests {
     async fn test_find_duplicate_true() -> Result<()> {
         let records = vec![
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -80,12 +75,7 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -106,12 +96,7 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -132,12 +117,7 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -158,12 +138,7 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 76050000000,
                 size: 1,
                 action: 84,
@@ -221,12 +196,7 @@ mod tests {
     async fn test_find_duplicate_false() -> Result<()> {
         let records = vec![
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 76025000000,
                 size: 2,
                 action: 84,
@@ -247,12 +217,7 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 77025000000,
                 size: 1,
                 action: 84,
@@ -273,12 +238,7 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 78025000000,
                 size: 2,
                 action: 84,
@@ -299,12 +259,7 @@ mod tests {
                 }],
             },
             Mbp1Msg {
-                hd: RecordHeader {
-                    length: 22,
-                    rtype: 1,
-                    instrument_id: 1333,
-                    ts_event: 1724079906415347717,
-                },
+                hd: RecordHeader::new::<Mbp1Msg>(1333, 1724079906415347717, 0),
                 price: 79050000000,
                 size: 1,
                 action: 84,

@@ -1,13 +1,17 @@
 use anyhow::Result;
+use databento::dbn;
 use dotenv::dotenv;
-use mbn::enums::Dataset;
-use mbn::vendors::Vendors;
+use mbn::enums::{Dataset, Schema, Stype};
+use mbn::symbols::Instrument;
+use mbn::vendors::{DatabentoData, VendorData, Vendors};
+use midas_client::instrument::Instruments;
 use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
 use repl_shell::context::Context;
 use repl_shell::{self, cli::ProcessCommand};
 use serial_test::serial;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::vec::Vec;
 
 // Set the environment variable for test mode
@@ -31,6 +35,7 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
         vendor: "databento".to_string(),
         vendor_data,
         first_available: "2024-11-27".to_string(),
+        expiration_date: "2025-01-27".to_string(),
         active: true,
     };
 
@@ -74,6 +79,7 @@ async fn test_create_instrument() -> Result<()> {
         vendor: "databento".to_string(),
         vendor_data,
         first_available: "2024-11-27".to_string(),
+        expiration_date: "2025-01-27".to_string(),
         active: true,
     };
     let command = repl_shell::cli::instrument::InstrumentCommands::Create(create_args);
@@ -155,6 +161,8 @@ async fn test_update_instrument() -> Result<()> {
         vendor_data,
         first_available: "2024-01-01".to_string(),
         last_available: "2024-11-01".to_string(),
+        expiration_date: "2025-01-27".to_string(),
+
         active: false,
     };
 
@@ -218,6 +226,435 @@ async fn test_list_backtests() -> Result<()> {
     // Command
     let command = repl_shell::cli::backtest::BacktestCommands::List;
     command.process_command(&context).await?;
+
+    Ok(())
+}
+
+// -- Vendors : Databento --
+#[tokio::test]
+#[serial]
+// #[ignore]
+async fn test_upload_get_compare() -> Result<()> {
+    let dataset = Dataset::Futures;
+
+    println!("Create tickers .. ");
+    create_tickers().await?;
+
+    println!("Running test_databento_upload...");
+    test_databento_upload(&dataset).await?;
+
+    // Raw
+    println!("Running test_get_records...");
+    test_get_records_raw(&dataset).await?;
+
+    println!("Running test_compare_files...");
+    test_compare_files_raw().await?;
+
+    // Continuous
+    println!("Running test_get_records...");
+    test_get_records_continuous(&dataset).await?;
+
+    println!("Running test_compare_files...");
+    test_compare_files_continuous().await?;
+
+    // Cleanup
+    teardown_tickers().await?;
+
+    Ok(())
+}
+
+async fn create_tickers() -> anyhow::Result<()> {
+    dotenv().ok();
+    let base_url = std::env::var("INSTRUMENT_URL").expect("Expected database_url.");
+    let client = Instruments::new(&base_url);
+
+    let schema = dbn::Schema::from_str("mbp-1")?;
+    let dbn_dataset = dbn::Dataset::from_str("GLBX.MDP3")?;
+    let stype = dbn::SType::from_str("raw_symbol")?;
+    let vendor_data = VendorData::Databento(DatabentoData {
+        schema,
+        dataset: dbn_dataset,
+        stype,
+    });
+    let vendor = Vendors::Databento;
+    let dataset = Dataset::Futures;
+    let mut instruments = Vec::new();
+
+    // LEG4
+    instruments.push(Instrument::new(
+        None,
+        "LEG4",
+        "LiveCattle-0224",
+        dataset,
+        vendor,
+        vendor_data.encode(),
+        1709229600000000000,
+        1704067200000000000,
+        1709229600000000000,
+        true,
+    ));
+
+    // HEG4
+    instruments.push(Instrument::new(
+        None,
+        "HEG4",
+        "LeanHogs-0224",
+        dataset,
+        vendor,
+        vendor_data.encode(),
+        1707933600000000000,
+        1704067200000000000,
+        1707933600000000000,
+        true,
+    ));
+
+    // HEJ4
+    instruments.push(Instrument::new(
+        None,
+        "HEJ4",
+        "LeanHogs-0424",
+        dataset,
+        vendor,
+        vendor_data.encode(),
+        1712941200000000000,
+        1704067200000000000,
+        1712941200000000000,
+        true,
+    ));
+
+    // LEJ4
+    instruments.push(Instrument::new(
+        None,
+        "LEJ4",
+        "LiveCattle-0424",
+        dataset,
+        vendor,
+        vendor_data.encode(),
+        1714496400000000000,
+        1704067200000000000,
+        1714496400000000000,
+        true,
+    ));
+
+    // HEK4
+    instruments.push(Instrument::new(
+        None,
+        "HEK4",
+        "LeanHogs-0524",
+        dataset,
+        vendor,
+        vendor_data.encode(),
+        1715706000000000000,
+        1704067200000000000,
+        1715706000000000000,
+        true,
+    ));
+
+    // HEM4
+    instruments.push(Instrument::new(
+        None,
+        "HEM4",
+        "LeanHogs-0624",
+        dataset,
+        vendor,
+        vendor_data.encode(),
+        1718384400000000000,
+        1704067200000000000,
+        1718384400000000000,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "LEM4",
+        "LiveCattle-0624",
+        dataset,
+        vendor,
+        vendor_data.encode(),
+        1719594000000000000,
+        1704067200000000000,
+        1719594000000000000,
+        true,
+    ));
+
+    for i in &instruments {
+        let create_response = client.create_symbol(i).await?;
+        let id = create_response.data as i32;
+        println!("{:?} : {}", i.ticker, id);
+    }
+
+    Ok(())
+}
+
+/// Deletes the tickers created during setup
+async fn teardown_tickers() -> anyhow::Result<()> {
+    dotenv().ok();
+    let base_url = std::env::var("INSTRUMENT_URL").expect("Expected INSTRUMENT_URL.");
+    let client = Instruments::new(&base_url);
+
+    let tickers_to_delete = vec![
+        "LEG4".to_string(),
+        "HEG4".to_string(),
+        "HEJ4".to_string(),
+        "LEJ4".to_string(),
+        "HEK4".to_string(),
+        "HEM4".to_string(),
+        "LEM4".to_string(),
+    ];
+
+    for ticker in tickers_to_delete {
+        let response = client.get_symbol(&ticker, &Dataset::Futures).await?;
+        let id = response.data[0].instrument_id.unwrap() as i32;
+        client.delete_symbol(&id).await?;
+        println!("Deleted ticker: {}", ticker);
+    }
+
+    Ok(())
+}
+
+async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
+    std::env::set_var(MODE, "1");
+    dotenv().ok();
+
+    // Parameters
+    let context = Context::init()?;
+
+    // Mbp1
+    let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Upload {
+        dataset: dataset.as_str().to_string(),
+        dbn_filepath:"GLBX.MDP3_mbp-1_HEG4_HEJ4_LEG4_LEJ4_LEM4_HEM4_HEK4_2024-02-09T00:00:00Z_2024-02-17T00:00:00Z.dbn".to_string(),
+        dbn_downloadtype: "stream".to_string(),
+        mbn_filepath: "system_tests_data.bin".to_string(),
+    };
+
+    upload_cmd.process_command(&context).await?;
+
+    Ok(())
+}
+
+async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
+    dotenv().ok();
+    let context = Context::init()?;
+
+    let schemas = vec![
+        Schema::Mbp1,
+        Schema::Tbbo,
+        Schema::Trades,
+        Schema::Bbo1S,
+        Schema::Bbo1M,
+        Schema::Ohlcv1S,
+        Schema::Ohlcv1M,
+        Schema::Ohlcv1H,
+        Schema::Ohlcv1D,
+    ];
+
+    let tickers = vec![
+        "HE.c.0".to_string(),
+        "HE.c.1".to_string(),
+        "LE.c.0".to_string(),
+        "LE.c.1".to_string(),
+    ];
+    let stype = Stype::Continuous;
+
+    for schema in &schemas {
+        let file_path = format!(
+            "tests/data/midas/{}_{}_test.bin",
+            schema.to_string(),
+            stype.to_string()
+        );
+
+        let historical_command = repl_shell::cli::historical::HistoricalArgs {
+            symbols: tickers.clone(),
+            start: "2024-02-13 00:00:00".to_string(),
+            end: "2024-02-16 00:00:00".to_string(),
+            schema: schema.to_string(),
+            dataset: dataset.as_str().to_string(),
+            stype: stype.as_str().to_string(),
+            file_path,
+        };
+
+        historical_command.process_command(&context).await?;
+    }
+    Ok(())
+}
+
+async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
+    dotenv().ok();
+    let context = Context::init()?;
+
+    let schemas = vec![
+        Schema::Mbp1,
+        Schema::Tbbo,
+        Schema::Trades,
+        Schema::Bbo1S,
+        Schema::Bbo1M,
+        Schema::Ohlcv1S,
+        Schema::Ohlcv1M,
+        Schema::Ohlcv1H,
+        Schema::Ohlcv1D,
+    ];
+
+    let tickers = vec![
+        "LEG4".to_string(),
+        "HEG4".to_string(),
+        "HEJ4".to_string(),
+        "LEJ4".to_string(),
+        "HEK4".to_string(),
+        "HEM4".to_string(),
+        "LEM4".to_string(),
+    ];
+    let stype = Stype::Raw;
+
+    for schema in &schemas {
+        let file_path = format!(
+            "tests/data/midas/{}_{}_test.bin",
+            schema.to_string(),
+            stype.to_string()
+        );
+
+        let historical_command = repl_shell::cli::historical::HistoricalArgs {
+            symbols: tickers.clone(),
+            start: "2024-02-13 00:00:00".to_string(),
+            end: "2024-02-17 00:00:00".to_string(),
+            schema: schema.to_string(),
+            dataset: dataset.as_str().to_string(),
+            stype: stype.as_str().to_string(),
+            file_path,
+        };
+
+        historical_command.process_command(&context).await?;
+    }
+    Ok(())
+}
+
+async fn test_compare_files_continuous() -> Result<()> {
+    dotenv().ok();
+
+    let context = Context::init()?;
+    let stype = Stype::Continuous;
+    let schemas = vec![
+        Schema::Mbp1,
+        Schema::Tbbo,
+        Schema::Trades,
+        Schema::Bbo1S,
+        Schema::Bbo1M,
+        Schema::Ohlcv1S,
+        Schema::Ohlcv1M,
+        Schema::Ohlcv1H,
+        Schema::Ohlcv1D,
+    ];
+    for schema in &schemas {
+        println!("Schema: {:?}", schema);
+        let mbn_filepath = format!(
+            "tests/data/midas/{}_{}_test.bin",
+            schema.to_string(),
+            stype.to_string()
+        );
+
+        let dbn_filepath = format!(
+            "tests/data/databento/GLBX.MDP3_{}_HE.c.0_HE.c.1_LE.c.0_LE.c.1_2024-02-13T00:00:00Z_2024-02-16T00:00:00Z.dbn",
+            schema.to_string(),
+        );
+
+        let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
+            dbn_filepath,
+            mbn_filepath,
+        };
+
+        compare_command.process_command(&context).await?;
+    }
+
+    Ok(())
+}
+
+async fn test_compare_files_raw() -> Result<()> {
+    dotenv().ok();
+
+    let context = Context::init()?;
+    let stype = Stype::Raw;
+    let schemas = vec![
+        Schema::Mbp1,
+        Schema::Tbbo,
+        Schema::Trades,
+        Schema::Bbo1S,
+        Schema::Bbo1M,
+        Schema::Ohlcv1S,
+        Schema::Ohlcv1M,
+        Schema::Ohlcv1H,
+        Schema::Ohlcv1D,
+    ];
+    for schema in &schemas {
+        println!("Schema: {:?}", schema);
+
+        let mbn_filepath = format!(
+            "tests/data/midas/{}_{}_test.bin",
+            schema.to_string(),
+            stype.to_string()
+        );
+
+        let dbn_filepath = format!(
+            "tests/data/databento/GLBX.MDP3_{}_HEG4_HEJ4_LEG4_LEJ4_LEM4_HEM4_HEK4_2024-02-13T00:00:00Z_2024-02-17T00:00:00Z.dbn",
+            schema.to_string(),
+        );
+
+        let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
+            dbn_filepath,
+            mbn_filepath,
+        };
+
+        compare_command.process_command(&context).await?;
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+#[serial]
+#[ignore]
+async fn test_databento_transform() -> anyhow::Result<()> {
+    dotenv().ok();
+    let ticker = "ZM.n.0";
+    let _ = create_test_ticker(ticker).await?;
+
+    let ticker = "GC.n.0";
+    let _ = create_test_ticker(ticker).await?;
+
+    let dataset = Dataset::Futures;
+    // Parameters
+    let context = Context::init()?;
+
+    // Mbp1
+    let dbn_filepath= "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn";
+    let mbn_filepath = "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin";
+
+    let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Transform {
+        dataset: dataset.as_str().to_string(),
+        dbn_filepath: dbn_filepath.to_string(),
+        mbn_filepath: mbn_filepath.to_string(),
+    };
+
+    upload_cmd.process_command(&context).await?;
+
+    // Check duplicates
+    let duplicatecheck_cmd = repl_shell::cli::midas::MidasCommands::Duplicates {
+        filepath: mbn_filepath.to_string(),
+    };
+
+    duplicatecheck_cmd.process_command(&context).await?;
+
+    // Check duplicates
+    let compare_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
+        dbn_filepath: dbn_filepath.to_string(),
+        mbn_filepath: mbn_filepath.to_string(),
+    };
+
+    compare_cmd.process_command(&context).await?;
+
+    let path = PathBuf::from(mbn_filepath);
+    if path.exists() {
+        std::fs::remove_file(&path).expect("Failed to delete the test file.");
+    }
 
     Ok(())
 }
@@ -326,253 +763,6 @@ async fn test_databento_download() -> Result<()> {
     };
 
     to_file_command.process_command(&context).await?;
-
-    Ok(())
-}
-
-#[tokio::test]
-#[serial]
-// #[ignore]
-async fn test_upload_get_compare() -> Result<()> {
-    // Set up
-    let ticker1 = "ZM.n.0".to_string();
-    let ticker2 = "GC.n.0".to_string();
-    let dataset = Dataset::Futures;
-
-    let _ = create_test_ticker(&ticker1).await?;
-    let _ = create_test_ticker(&ticker2).await?;
-
-    println!("Running test_databento_upload...");
-    test_databento_upload(&dataset).await?;
-
-    // // Clean-up intermediate file (PATH WILL BE DIFFERENT ON EVERY MACHINE)
-    // let _ = tokio::fs::remove_file(
-    //     "../server/data/processed_data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin",
-    // )
-    // .await;
-
-    println!("Running test_get_records...");
-    test_get_records(&dataset).await?;
-
-    println!("Running test_compare_files...");
-    test_compare_files().await?;
-
-    // Cleaup
-    let _ = cleanup_test_ticker(ticker1, &dataset).await?;
-    let _ = cleanup_test_ticker(ticker2, &dataset).await?;
-
-    Ok(())
-}
-
-async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
-    std::env::set_var(MODE, "1");
-    dotenv().ok();
-
-    // Parameters
-    let context = Context::init()?;
-
-    // Mbp1
-    let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Upload {
-        dataset: dataset.as_str().to_string(),
-        dbn_filepath: "GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn"
-            .to_string(),
-        dbn_downloadtype: "stream".to_string(),
-        mbn_filepath: "ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin".to_string(),
-    };
-
-    upload_cmd.process_command(&context).await?;
-
-    Ok(())
-}
-
-async fn test_get_records(dataset: &Dataset) -> Result<()> {
-    std::env::set_var(MODE, "1");
-    dotenv().ok();
-
-    let tickers: Vec<String> = SYMBOLS.iter().map(|s| s.to_string()).collect();
-    let context = Context::init()?;
-
-    // Mbp-1
-    let schema = "mbp-1".to_string();
-    let file_path = "tests/data/midas/mbp1_test.bin".to_string();
-
-    let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: tickers.clone(),
-        start: START.to_string(),
-        end: END.to_string(),
-        schema,
-        dataset: dataset.as_str().to_string(),
-        file_path,
-    };
-
-    historical_command.process_command(&context).await?;
-
-    // Ohlcv
-    let schema = "ohlcv-1h".to_string();
-    let file_path = "tests/data/midas/ohlcv1h_test.bin".to_string();
-
-    let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: tickers.clone(),
-        start: START.to_string(),
-        end: END.to_string(),
-        schema,
-        dataset: dataset.as_str().to_string(),
-        file_path,
-    };
-
-    historical_command.process_command(&context).await?;
-
-    // Trades
-    let schema = "trade".to_string();
-    let file_path = "tests/data/midas/trades_test.bin".to_string();
-
-    let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: tickers.clone(),
-        start: START.to_string(),
-        end: END.to_string(),
-        schema,
-        dataset: dataset.as_str().to_string(),
-        file_path,
-    };
-
-    historical_command.process_command(&context).await?;
-
-    // Tbbo
-    let schema = "tbbo".to_string();
-    let file_path = "tests/data/midas/tbbo_test.bin".to_string();
-
-    let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: tickers.clone(),
-        start: START.to_string(),
-        end: END.to_string(),
-        schema,
-        dataset: dataset.as_str().to_string(),
-        file_path,
-    };
-
-    historical_command.process_command(&context).await?;
-
-    // Bbo
-    let schema = "bbo-1m".to_string();
-    let file_path = "tests/data/midas/bbo1m_test.bin".to_string();
-
-    let historical_command = repl_shell::cli::historical::HistoricalArgs {
-        symbols: tickers.clone(),
-        start: START.to_string(),
-        end: END.to_string(),
-        schema,
-        dataset: dataset.as_str().to_string(),
-        file_path,
-    };
-
-    historical_command.process_command(&context).await?;
-    Ok(())
-}
-
-async fn test_compare_files() -> Result<()> {
-    std::env::set_var(MODE, "1");
-    dotenv().ok();
-
-    let context = Context::init()?;
-
-    // // Mbp-1 -- TAKES A WHILE TO RUN
-    // let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
-    //     dbn_filepath:
-    //         "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn"
-    //             .to_string(),
-    //     mbn_filepath: "tests/data/midas/mbp1_test.bin".to_string(),
-    // };
-    //
-    // compare_command.process_command(&context).await?;
-    //
-    // Ohlcv
-    let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
-        dbn_filepath:
-            "tests/data/databento/GLBX.MDP3_ohlcv-1h_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn"
-                .to_string(),
-        mbn_filepath: "tests/data/midas/ohlcv1h_test.bin".to_string(),
-    };
-
-    compare_command.process_command(&context).await?;
-
-    // Trades
-    let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
-        dbn_filepath:
-            "tests/data/databento/GLBX.MDP3_trades_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn"
-                .to_string(),
-        mbn_filepath: "tests/data/midas/trades_test.bin".to_string(),
-    };
-
-    compare_command.process_command(&context).await?;
-    //
-    // Tbbo
-    let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
-        dbn_filepath:
-            "tests/data/databento/GLBX.MDP3_tbbo_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn"
-                .to_string(),
-        mbn_filepath: "tests/data/midas/tbbo_test.bin".to_string(),
-    };
-
-    compare_command.process_command(&context).await?;
-
-    // Bbo
-    let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
-        dbn_filepath:
-            "tests/data/databento/GLBX.MDP3_bbo-1m_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn"
-                .to_string(),
-        mbn_filepath: "tests/data/midas/bbo1m_test.bin".to_string(),
-    };
-
-    compare_command.process_command(&context).await?;
-
-    Ok(())
-}
-
-#[tokio::test]
-#[serial]
-async fn test_databento_transform() -> anyhow::Result<()> {
-    dotenv().ok();
-    let ticker = "ZM.n.0";
-    let _ = create_test_ticker(ticker).await?;
-
-    let ticker = "GC.n.0";
-    let _ = create_test_ticker(ticker).await?;
-
-    let dataset = Dataset::Futures;
-    // Parameters
-    let context = Context::init()?;
-
-    // Mbp1
-    let dbn_filepath= "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn";
-    let mbn_filepath = "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin";
-
-    let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Transform {
-        dataset: dataset.as_str().to_string(),
-        dbn_filepath: dbn_filepath.to_string(),
-        mbn_filepath: mbn_filepath.to_string(),
-    };
-
-    upload_cmd.process_command(&context).await?;
-
-    // Check duplicates
-    let duplicatecheck_cmd = repl_shell::cli::midas::MidasCommands::Duplicates {
-        filepath: mbn_filepath.to_string(),
-    };
-
-    duplicatecheck_cmd.process_command(&context).await?;
-
-    // Check duplicates
-    let compare_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
-        dbn_filepath: dbn_filepath.to_string(),
-        mbn_filepath: mbn_filepath.to_string(),
-    };
-
-    compare_cmd.process_command(&context).await?;
-
-    let path = PathBuf::from(mbn_filepath);
-    if path.exists() {
-        std::fs::remove_file(&path).expect("Failed to delete the test file.");
-    }
 
     Ok(())
 }
