@@ -678,6 +678,7 @@ async fn test_update_databento() -> Result<()> {
     // Mbp1
     let update_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Update {
         dataset: dataset.as_str().to_string(),
+        approval: true,
     };
     update_cmd.process_command(&context).await?;
 

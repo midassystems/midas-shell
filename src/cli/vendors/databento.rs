@@ -58,6 +58,8 @@ pub enum DatabentoCommands {
         /// Schema ex. Mbp1, Ohlcv
         #[arg(long)]
         dataset: String,
+        #[arg(long)]
+        approval: bool,
     },
     /// Download databento data to file
     Download {
@@ -136,13 +138,13 @@ impl ProcessCommand for DatabentoCommands {
         let db_client = context.get_databento_client().await;
 
         match self {
-            DatabentoCommands::Update { dataset } => {
+            DatabentoCommands::Update { dataset, approval } => {
                 // Lock the mutex to get a mutable reference to DatabentoClient
                 let mut db_client = db_client.lock().await;
                 let dataset = Dataset::from_str(dataset)?;
 
                 let _ = db_client
-                    .update(dataset, &hist_client, &inst_client)
+                    .update(dataset, &hist_client, &inst_client, *approval)
                     .await?;
 
                 Ok(())
@@ -175,6 +177,7 @@ impl ProcessCommand for DatabentoCommands {
                         &stype_enum,
                         start_date,
                         end_date,
+                        true,
                         dir_path.clone(),
                     )
                     .await?;

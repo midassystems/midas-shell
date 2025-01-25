@@ -195,6 +195,7 @@ impl DatabentoClient {
         schema: &Schema,
         stype: &SType,
         dir_path: &PathBuf,
+        approval: bool,
     ) -> Result<Option<(DownloadType, PathBuf)>> {
         // Cost check
         let cost = self
@@ -211,12 +212,14 @@ impl DatabentoClient {
             "Download size is : {} GB.\nEstimated cost is : $ {}\n",
             size, cost
         );
-        // println!("The estimated cost for this operation is: $ {}", cost);
-        let proceed = user_input()?;
-        if proceed == false {
-            return Ok(None);
+
+        if !approval {
+            let proceed = user_input()?;
+            if proceed == false {
+                return Ok(None);
+            }
+            println!("Operation is continuing...");
         }
-        println!("Operation is continuing...");
 
         // Dynamic load based on size
         let download_type;
@@ -380,6 +383,7 @@ mod tests {
                 &schema,
                 &stype,
                 &PathBuf::from("tests/data/databento/get_historical"),
+                false,
             )
             .await?;
 

@@ -49,6 +49,7 @@ impl DatabentoVendor {
         mbn_dataset: &Dataset,
         client: &Historical,
         instrument_client: &Instruments,
+        download_approval: bool,
     ) -> Result<()> {
         // Download
         let (download_type, file_name) = self
@@ -59,6 +60,7 @@ impl DatabentoVendor {
                 stype,
                 *start,
                 *end,
+                download_approval,
                 None,
             )
             .await?;
@@ -99,6 +101,7 @@ impl DatabentoVendor {
         stype: &dbn::SType,
         start: OffsetDateTime,
         end: OffsetDateTime,
+        approval: bool,
         dir_path: Option<String>,
     ) -> Result<(DownloadType, PathBuf)> {
         let dir;
@@ -114,7 +117,7 @@ impl DatabentoVendor {
             .get_historical(
                 dataset, // &dbnDataset::from_str(&dataset)?,
                 &start, &end, &tickers, &schema, stype, // &SType::from_str(&stype)?,
-                &dir,
+                &dir, approval,
             )
             .await?
             .ok_or(Error::NoDataError)?;
@@ -130,6 +133,7 @@ impl Vendor for DatabentoVendor {
         dataset: Dataset,
         hist_client: &Historical,
         instrument_client: &Instruments,
+        download_approval: bool,
     ) -> Result<()> {
         // Calculate today at the start of the day once
         let today = OffsetDateTime::now_utc().replace_time(time!(00:00));
@@ -154,10 +158,6 @@ impl Vendor for DatabentoVendor {
                     let start = ticker.last_available_datetime()?;
                     let end = get_earlier_of_year_end_or_date(start, today);
                     println!("Ticker {:?} Start {:?} End {:?}", ticker.ticker, start, end);
-                    println!(
-                        "Last_avaialble {:?}, expiration_dataa {:?}",
-                        ticker.last_available, ticker.expiration_date
-                    );
 
                     if start == end
                         || (ticker.last_available > ticker.expiration_date
@@ -168,29 +168,45 @@ impl Vendor for DatabentoVendor {
                     }
 
                     // Load data
-                    self.update_ticker(
-                        &ticker,
-                        &start,
-                        &end,
-                        &schema,
-                        &stype,
-                        &dbn_dataset,
-                        &dataset,
-                        hist_client,
-                        instrument_client,
-                    )
-                    .await
-                    .map_err(|e| {
-                        error!(
-                            CustomError,
-                            "Failed to upload ticker {} for start {} and end {} : {:?}",
-                            ticker.ticker,
-                            start,
-                            end,
-                            e
+                    if let Err(e) = self
+                        .update_ticker(
+                            &ticker,
+                            &start,
+                            &end,
+                            &schema,
+                            &stype,
+                            &dbn_dataset,
+                            &dataset,
+                            hist_client,
+                            instrument_client,
+                            download_approval,
                         )
-                    })?;
-
+                        .await
+                    {
+                        if let Error::DatabentoError(databento::Error::Api(api_error)) = &e {
+                            if api_error.status_code == 422
+                                && api_error
+                                    .message
+                                    .contains("None of the symbols could be resolved")
+                            {
+                                println!(
+                                    "DatabentoError: Failed to upload ticker {} for start {} and end {}. Reason: {:?}",
+                                    ticker.ticker, start, end, api_error.message
+                                );
+                            }
+                        } else {
+                            // Re-raise other errors
+                            error!(
+                                CustomError,
+                                "Failed to upload ticker {} for start {} and end {} : {:?}",
+                                ticker.ticker,
+                                start,
+                                end,
+                                e
+                            );
+                            return Err(e); // Propagate other errors
+                        }
+                    }
                     // Update ticker last_available field
                     let last_available = end.unix_timestamp_nanos() as u64; // end.unix_timstamp_nanos() as u64;
                     ticker.last_available = last_available; // end.unix_timestamp_nanos() as u64;
@@ -471,6 +487,7 @@ mod tests {
                 &STYPE,
                 START,
                 END,
+                false,
                 Some("tests/data".to_string()),
             )
             .await?;

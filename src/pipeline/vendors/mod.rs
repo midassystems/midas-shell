@@ -32,6 +32,7 @@ pub trait Vendor {
         dataset: Dataset,
         hist_client: &Historical,
         instrument_client: &Instruments,
+        download_approval: bool,
     ) -> Result<()>;
 
     /// Transforms data from vendor format to mbn format, saves to staging file.
