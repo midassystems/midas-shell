@@ -174,8 +174,9 @@ impl ProcessCommand for InstrumentCommands {
             InstrumentCommands::Create(args) => {
                 let vendor = Vendors::from_str(&args.vendor)?;
                 let dataset = Dataset::from_str(&args.dataset)?;
-                let first_available = date_to_unix_nanos(&args.first_available)?;
-                let expiration_date = date_to_unix_nanos(&args.expiration_date)?;
+                let first_available = date_to_unix_nanos(&args.first_available, None)?;
+                let expiration_date =
+                    date_to_unix_nanos(&args.expiration_date, Some("America/New_York"))?;
 
                 let vendor_data_map = args.vendor_data.clone();
                 let vendor_data = construct_vendor_data(&vendor, vendor_data_map).map_err(|e| {
@@ -237,9 +238,10 @@ impl ProcessCommand for InstrumentCommands {
             InstrumentCommands::Update(args) => {
                 let vendor = Vendors::from_str(&args.vendor)?;
                 let dataset = Dataset::from_str(&args.dataset)?;
-                let first_available = date_to_unix_nanos(&args.first_available)?;
-                let last_available = date_to_unix_nanos(&args.last_available)?;
-                let expiration_date = date_to_unix_nanos(&args.expiration_date)?;
+                let first_available = date_to_unix_nanos(&args.first_available, None)?;
+                let last_available = date_to_unix_nanos(&args.last_available, None)?;
+                let expiration_date =
+                    date_to_unix_nanos(&args.expiration_date, Some("America/New_York"))?;
                 let vendor_data_map = args.vendor_data.clone();
                 let vendor_data = construct_vendor_data(&vendor, vendor_data_map).map_err(|e| {
                     Error::CustomError(format!("Failed to parse vendor data '{}'", e))

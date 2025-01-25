@@ -25,6 +25,7 @@ colored = "2.2.0"
 console = "0.15"
 mbn = { git = "https://github.com/midassystems/mbn.git", branch = "main" }
 midas_client = { git ="https://github.com/midassystems/midas-rs.git", branch ="main" }
+chrono-tz = "0.10.1"
 
 # chrono = "0.4"
 # tokio = {version ="1.38.1", features = ["full"]}
