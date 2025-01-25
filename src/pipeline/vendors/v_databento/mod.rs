@@ -154,8 +154,15 @@ impl Vendor for DatabentoVendor {
                     let start = ticker.last_available_datetime()?;
                     let end = get_earlier_of_year_end_or_date(start, today);
                     println!("Ticker {:?} Start {:?} End {:?}", ticker.ticker, start, end);
+                    println!(
+                        "Last_avaialble {:?}, expiration_dataa {:?}",
+                        ticker.last_available, ticker.expiration_date
+                    );
 
-                    if start == end {
+                    if start == end
+                        || (ticker.last_available > ticker.expiration_date
+                            && ticker.dataset != Dataset::Equities)
+                    {
                         println!("Ticker {:?} is already up-to-date.", ticker.ticker);
                         break; // Move to the next ticker
                     }
@@ -185,7 +192,13 @@ impl Vendor for DatabentoVendor {
                     })?;
 
                     // Update ticker last_available field
-                    ticker.last_available = end.unix_timestamp_nanos() as u64;
+                    let last_available = end.unix_timestamp_nanos() as u64; // end.unix_timstamp_nanos() as u64;
+                    ticker.last_available = last_available; // end.unix_timestamp_nanos() as u64;
+
+                    if last_available > ticker.expiration_date && dataset != Dataset::Equities {
+                        end_flag = true;
+                    }
+
                     instrument_client
                         .update_symbol(&ticker)
                         .await
