@@ -397,8 +397,8 @@ mod tests {
         let base_url = "http://localhost:8082"; // Update with your actual base URL
         let client = midas_client::instrument::Instruments::new(base_url);
 
-        let first_available = date_to_unix_nanos("2024-08-20")?;
-        let expiration_date = date_to_unix_nanos("2025-08-20")?;
+        let first_available = date_to_unix_nanos("2024-08-20", None)?;
+        let expiration_date = date_to_unix_nanos("2025-08-20", None)?;
         let schema = dbn::Schema::from_str("mbp-1")?;
         let dataset = dbn::Dataset::from_str("GLBX.MDP3")?;
         let stype = dbn::SType::from_str("raw_symbol")?;

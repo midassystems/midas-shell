@@ -1,12 +1,21 @@
 use crate::error::{Error, Result};
 use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono_tz::Tz;
 use midas_client::historical::Historical;
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
-pub fn date_to_unix_nanos(date_str: &str) -> Result<i64> {
+pub fn date_to_unix_nanos(date_str: &str, timezone: Option<&str>) -> Result<i64> {
+    // Parse the timezone or default to UTC
+    let tz: Tz = match timezone {
+        Some(tz_str) => tz_str
+            .parse()
+            .map_err(|_| Error::CustomError(format!("Invalid timezone: {}", tz_str)))?,
+        None => chrono_tz::UTC,
+    };
+
     let naive_datetime = if date_str.len() == 10 {
         // Attempt to parse date-only format YYYY-MM-DD
         match NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
@@ -30,14 +39,28 @@ pub fn date_to_unix_nanos(date_str: &str) -> Result<i64> {
             }
         }
     };
+    // Convert to timezone-aware datetime
+    let datetime_with_tz = tz
+        .from_local_datetime(&naive_datetime)
+        .single()
+        .ok_or_else(|| {
+            Error::CustomError(format!(
+                "Failed to interpret '{}' in timezone '{}'",
+                date_str,
+                timezone.unwrap_or("UTC")
+            ))
+        })?;
 
-    // Convert the NaiveDateTime to a DateTime<Utc>
-    let datetime_utc: DateTime<Utc> = DateTime::from_naive_utc_and_offset(naive_datetime, Utc);
+    // // Convert the NaiveDateTime to a DateTime<Utc>
+    // let datetime_utc: DateTime<Utc> = DateTime::from_naive_utc_and_offset(naive_datetime, Utc);
+    //
+    // // Convert to Unix time in nanoseconds
+    let unix_nanos = datetime_with_tz.timestamp_nanos_opt().unwrap();
 
-    // Convert to Unix time in nanoseconds
-    let unix_nanos = datetime_utc.timestamp_nanos_opt().unwrap();
-
+    // Convert to Unix nanoseconds
     Ok(unix_nanos)
+
+    // Ok(datetime_with_tz.timestamp_nanos())
 }
 
 pub fn unix_nanos_to_date(unix_nanos: i64) -> Result<String> {
@@ -177,11 +200,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_datetime_to_unix_nanos() -> Result<()> {
+    fn test_datetime_to_unix_nanos_utc() -> Result<()> {
         let date_str = "2021-11-01 01:01:01";
 
         // Test
-        let unix_nanos = date_to_unix_nanos(date_str)?;
+        let unix_nanos = date_to_unix_nanos(date_str, None)?;
 
         // Validate
         assert_eq!(1635728461000000000, unix_nanos);
@@ -189,14 +212,40 @@ mod tests {
     }
 
     #[test]
-    fn test_date_to_unix_nanos() -> Result<()> {
+    fn test_date_to_unix_nanos_utc() -> Result<()> {
         let date_str = "2021-11-01";
 
         // Test
-        let unix_nanos = date_to_unix_nanos(date_str)?;
+        let unix_nanos = date_to_unix_nanos(date_str, None)?;
 
         // Validate
         assert_eq!(1635724800000000000, unix_nanos);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_date_to_unix_nanos_est() -> Result<()> {
+        let date_str = "2021-12-01 13:00:00";
+
+        // Test
+        let unix_nanos = date_to_unix_nanos(date_str, Some("America/New_York"))?;
+
+        // Validate
+        assert_eq!(1638381600000000000, unix_nanos);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_date_to_unix_nanos_edt() -> Result<()> {
+        let date_str = "2021-07-01 13:00:00";
+
+        // Test
+        let unix_nanos = date_to_unix_nanos(date_str, Some("America/New_York"))?;
+
+        // Validate
+        assert_eq!(1625158800000000000, unix_nanos);
 
         Ok(())
     }
