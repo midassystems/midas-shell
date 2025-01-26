@@ -38,8 +38,8 @@ pub async fn to_mbn(
     file_name: &PathBuf,
 ) -> Result<()> {
     let mut mbn_records = Vec::new();
-    let mut block: HashMap<Mbp1Msg, u32> = HashMap::new();
-    let batch_size = 10000;
+    let mut block: HashMap<u64, HashMap<Mbp1Msg, u32>> = HashMap::new();
+    let batch_size: usize = 10000;
 
     let _ = metadata_to_file(&metadata, file_name, true)?;
 
@@ -51,16 +51,20 @@ pub async fn to_mbn(
             mbn_msg.hd.instrument_id = *new_id;
         }
 
-        if record.flags.is_last() {
-            block.clear();
-        }
+        // Prune old records from the block
+        let ts_recv = mbn_msg.ts_recv;
+        block.retain(|key, _| *key >= ts_recv);
 
+        // Insert or update the current record in the block
         block
-            .entry(mbn_msg.clone())
+            .entry(ts_recv) // Outer key is ts_recv
+            .or_default() // Ensure the inner map exists
+            .entry(mbn_msg.clone()) // Inner key is Mbp1Msg
             .and_modify(|v| *v += 1)
             .or_insert(0);
 
-        if let Some(count) = block.get(&mbn_msg) {
+        // Update the discriminator based on the count in the block
+        if let Some(count) = block.get(&ts_recv).and_then(|inner| inner.get(&mbn_msg)) {
             mbn_msg.discriminator = *count;
         }
 
@@ -81,6 +85,57 @@ pub async fn to_mbn(
 
     Ok(())
 }
+
+// pub async fn to_mbn(
+//     metadata: &Metadata,
+//     decoder: &mut AsyncDbnDecoder<ZstdDecoder<BufReader<File>>>,
+//     map: &HashMap<u32, u32>,
+//     file_name: &PathBuf,
+// ) -> Result<()> {
+//     let mut mbn_records = Vec::new();
+//     let mut block: HashMap<Mbp1Msg, u32> = HashMap::new();
+//     let batch_size = 10000;
+//
+//     let _ = metadata_to_file(&metadata, file_name, true)?;
+//
+//     // Decode each record and process it on the fly
+//     while let Some(record) = decoder.decode_record::<dbn::Mbp1Msg>().await? {
+//         let mut mbn_msg = Mbp1Msg::from(record);
+//
+//         if let Some(new_id) = map.get(&mbn_msg.hd.instrument_id) {
+//             mbn_msg.hd.instrument_id = *new_id;
+//         }
+//
+//         if record.flags.is_last() {
+//             block.clear();
+//         }
+//
+//         block
+//             .entry(mbn_msg.clone())
+//             .and_modify(|v| *v += 1)
+//             .or_insert(0);
+//
+//         if let Some(count) = block.get(&mbn_msg) {
+//             mbn_msg.discriminator = *count;
+//         }
+//
+//         mbn_records.push(mbn_msg);
+//
+//         // If batch is full, write to file and clear batch
+//         if mbn_records.len() >= batch_size {
+//             mbn_to_file(&mbn_records, file_name, true).await?;
+//             mbn_records.clear();
+//         }
+//     }
+//
+//     // Write any remaining records in the last batch
+//     if !mbn_records.is_empty() {
+//         mbn_to_file(&mbn_records, file_name, true).await?;
+//         mbn_records.clear();
+//     }
+//
+//     Ok(())
+// }
 
 #[cfg(test)]
 mod tests {

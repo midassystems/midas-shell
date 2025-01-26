@@ -1,10 +1,57 @@
 use crate::error::Result;
+use crate::pipeline::midas::load::read_mbn_file;
+use crate::pipeline::vendors::v_databento::extract::read_dbn_file;
 use mbn::decode::AsyncDecoder;
 use mbn::record_enum::RecordEnum;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
+
+pub async fn compare_dbn_raw_output(dbn_filepath: PathBuf, mbn_filepath: &PathBuf) -> Result<()> {
+    let mut mbn_decoder = read_mbn_file(mbn_filepath).await?;
+    let (mut dbn_decoder, _map) = read_dbn_file(dbn_filepath).await?;
+    println!("{:?}", dbn_decoder.metadata());
+    println!("{:?}", mbn_decoder.metadata());
+
+    // Output files
+    let mbn_output_file = "raw_mbn_records.txt";
+    let dbn_output_file = "raw_dbn_records.txt";
+
+    // Create or truncate output files
+    let mut mbn_file = File::create(mbn_output_file).await?;
+    let mut dbn_file = File::create(dbn_output_file).await?;
+
+    let mut mbn_count = 0;
+    // Write MBN records to file
+    while let Some(mbn_record) = mbn_decoder.decode_ref().await? {
+        mbn_count += 1;
+        let record_enum = RecordEnum::from_ref(mbn_record)?;
+        mbn_file
+            .write_all(format!("{:?}\n", record_enum).as_bytes())
+            .await?;
+    }
+
+    let mut dbn_count = 0;
+    // Write DBN records to file
+    while let Some(dbn_record) = dbn_decoder.decode_record_ref().await? {
+        dbn_count += 1;
+        let dbn_record_enum = dbn_record.as_enum()?.to_owned();
+        dbn_file
+            .write_all(format!("{:?}\n", dbn_record_enum).as_bytes())
+            .await?;
+    }
+    println!("MBN length: {:?}", mbn_count);
+    println!("DBN length: {:?}", dbn_count);
+
+    println!(
+        "MBN records written to: {}, DBN records written to: {}",
+        mbn_output_file, dbn_output_file
+    );
+
+    Ok(())
+}
 
 pub async fn find_duplicates(filepath: &PathBuf) -> Result<usize> {
     let mut occurrences: HashMap<RecordEnum, usize> = HashMap::new();
@@ -39,14 +86,51 @@ pub async fn find_duplicates(filepath: &PathBuf) -> Result<usize> {
 mod tests {
     use super::*;
     use crate::error::Result;
+    use crate::pipeline::vendors::v_databento::transform::{instrument_id_map, to_mbn};
     use mbn::encode::RecordEncoder;
+    use mbn::enums::{Dataset, Schema};
+    use mbn::metadata::Metadata;
     use mbn::record_ref::RecordRef;
+    use mbn::symbols::SymbolMap;
     use mbn::{
         self,
         records::{BidAskPair, Mbp1Msg, RecordHeader},
     };
     use serial_test::serial;
     use std::path::PathBuf;
+
+    #[tokio::test]
+    #[serial]
+    // #[ignore]
+    async fn test_find_duplicate_error_fix() -> Result<()> {
+        let mbn_file = PathBuf::from("tests/data/midas/HEQ4_mbp1.bin");
+        let dbn_file = PathBuf::from(
+            "tests/data/databento/GLBX.MDP3_mbp-1_HEQ4_2024-03-05T00:00:00Z_2024-03-06T00:00:00Z.dbn",
+        );
+
+        // Convert to mbn
+        let (mut decoder, map) = read_dbn_file(dbn_file.clone()).await?;
+
+        let mut mbn_map = HashMap::new();
+        mbn_map.insert("HEQ4".to_string(), 21 as u32);
+        let new_map = instrument_id_map(map, mbn_map)?;
+        let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
+
+        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file).await?;
+
+        // Compare files
+        compare_dbn_raw_output(dbn_file.clone(), &mbn_file).await?;
+
+        // Check duplicates mbn
+        let duplicates_count = find_duplicates(&mbn_file).await?;
+        assert_eq!(duplicates_count, 0);
+
+        // Cleanup
+        if mbn_file.exists() {
+            std::fs::remove_file(&mbn_file).expect("Failed to delete the test file.");
+        }
+        Ok(())
+    }
 
     #[tokio::test]
     #[serial]
