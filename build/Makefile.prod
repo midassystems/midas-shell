@@ -32,6 +32,3 @@ package:
 	# Installation script
 	cp ./scripts/install.sh midas-release/
 	chmod +x midas-release/install.sh
-
-	# Create a tar.gz archive of the release
-	tar -czvf release/midas-1.0.0.tar.gz midas-release/

@@ -22,3 +22,4 @@ command.txt
 history.txt
 *.txt
 /midas-release
+/release

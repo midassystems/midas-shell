@@ -42,8 +42,6 @@ The shell includes the following commands:
 
 ## Installation
 
-### Option 1: From Source (Recommended)
-
 1. Clone the repository:
 
    ```bash
@@ -71,26 +69,6 @@ The shell includes the following commands:
    chmod +x ./install.sh
    ```
 
-5. Run the installer:
-   ```bash
-   ./install.sh
-   ```
-
-### Option 2: Using Prebuilt Release (Mac Only)
-
-1. Download the latest prebuilt tarball from the [Releases](https://github.com/midassystems/midas-shell/releases) page.
-2. Extract the tarball:
-   ```bash
-   tar -xvf midas-release.tar.gz
-   ```
-3. Navigate to the extracted directory:
-   ```bash
-   cd midas-release
-   ```
-4. Make the installer executable:
-   ```bash
-   chmod +x ./install.sh
-   ```
 5. Run the installer:
    ```bash
    ./install.sh
