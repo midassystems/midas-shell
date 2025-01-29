@@ -90,6 +90,9 @@ pub enum DatabentoCommands {
         /// Optional path, if not provided will defualt to RAW_DIR variable.
         #[arg(long)]
         dir_path: Option<String>,
+
+        #[arg(long)]
+        approval: bool,
     },
     /// Upload a databento file to database
     Transform {
@@ -158,6 +161,7 @@ impl ProcessCommand for DatabentoCommands {
                 dataset,
                 stype,
                 dir_path,
+                approval,
             } => {
                 let start_date = process_start_date(start)?;
                 let end_date = processs_end_date(Some(end.clone()))?;
@@ -177,7 +181,7 @@ impl ProcessCommand for DatabentoCommands {
                         &stype_enum,
                         start_date,
                         end_date,
-                        true,
+                        *approval,
                         dir_path.clone(),
                     )
                     .await?;

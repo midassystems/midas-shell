@@ -708,6 +708,7 @@ async fn test_databento_download() -> Result<()> {
         schema: "mbp-1".to_string(),
         dataset: "GLBX.MDP3".to_string(),
         stype: "continuous".to_string(),
+        approval: true,
         dir_path: None,
     };
 
@@ -721,6 +722,7 @@ async fn test_databento_download() -> Result<()> {
         schema: "ohlcv-1h".to_string(),
         dataset: "GLBX.MDP3".to_string(),
         stype: "continuous".to_string(),
+        approval: true,
         dir_path: None,
     };
 
@@ -734,6 +736,7 @@ async fn test_databento_download() -> Result<()> {
         schema: "trades".to_string(),
         dataset: "GLBX.MDP3".to_string(),
         stype: "continuous".to_string(),
+        approval: true,
         dir_path: None,
     };
 
@@ -747,6 +750,7 @@ async fn test_databento_download() -> Result<()> {
         schema: "tbbo".to_string(),
         dataset: "GLBX.MDP3".to_string(),
         stype: "continuous".to_string(),
+        approval: true,
         dir_path: None,
     };
 
@@ -760,6 +764,7 @@ async fn test_databento_download() -> Result<()> {
         schema: "bbo-1m".to_string(),
         dataset: "GLBX.MDP3".to_string(),
         stype: "continuous".to_string(),
+        approval: true,
         dir_path: None,
     };
 
