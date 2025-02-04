@@ -243,19 +243,19 @@ async fn test_upload_get_compare() -> Result<()> {
     println!("Running test_databento_upload...");
     test_databento_upload(&dataset).await?;
 
-    // Raw
-    println!("Running test_get_records...");
-    test_get_records_raw(&dataset).await?;
-
-    println!("Running test_compare_files...");
-    test_compare_files_raw().await?;
-
     // Continuous
     println!("Running test_get_records...");
     test_get_records_continuous(&dataset).await?;
 
     println!("Running test_compare_files...");
     test_compare_files_continuous().await?;
+
+    // Raw
+    println!("Running test_get_records...");
+    test_get_records_raw(&dataset).await?;
+
+    println!("Running test_compare_files...");
+    test_compare_files_raw().await?;
 
     // Cleanup
     teardown_tickers().await?;
@@ -484,7 +484,6 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
     let context = Context::init()?;
 
     let schemas = vec![
-        Schema::Mbp1,
         Schema::Tbbo,
         Schema::Trades,
         Schema::Bbo1S,
@@ -493,6 +492,7 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
+        Schema::Mbp1,
     ];
 
     let tickers = vec![
@@ -574,7 +574,6 @@ async fn test_compare_files_raw() -> Result<()> {
     let context = Context::init()?;
     let stype = Stype::Raw;
     let schemas = vec![
-        Schema::Mbp1,
         Schema::Tbbo,
         Schema::Trades,
         Schema::Bbo1S,
@@ -583,6 +582,7 @@ async fn test_compare_files_raw() -> Result<()> {
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
+        Schema::Mbp1,
     ];
     for schema in &schemas {
         println!("Schema: {:?}", schema);
