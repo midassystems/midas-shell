@@ -3,8 +3,8 @@ use crate::context::Context;
 use crate::error::Result;
 use async_trait::async_trait;
 use clap::Args;
-use mbn::enums::{Dataset, Schema, Stype};
-use mbn::params::RetrieveParams;
+use mbinary::enums::{Dataset, Schema, Stype};
+use mbinary::params::RetrieveParams;
 use std::fmt::Debug;
 use std::str::FromStr;
 

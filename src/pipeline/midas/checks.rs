@@ -1,34 +1,37 @@
 use crate::error::Result;
-use crate::pipeline::midas::load::read_mbn_file;
+use crate::pipeline::midas::load::read_mbinary_file;
 use crate::pipeline::vendors::v_databento::extract::read_dbn_file;
-use mbn::decode::AsyncDecoder;
-use mbn::record_enum::RecordEnum;
+use mbinary::decode::AsyncDecoder;
+use mbinary::record_enum::RecordEnum;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
 
-pub async fn compare_dbn_raw_output(dbn_filepath: PathBuf, mbn_filepath: &PathBuf) -> Result<()> {
-    let mut mbn_decoder = read_mbn_file(mbn_filepath).await?;
+pub async fn compare_dbn_raw_output(
+    dbn_filepath: PathBuf,
+    mbinary_filepath: &PathBuf,
+) -> Result<()> {
+    let mut mbinary_decoder = read_mbinary_file(mbinary_filepath).await?;
     let (mut dbn_decoder, _map) = read_dbn_file(dbn_filepath).await?;
     println!("{:?}", dbn_decoder.metadata());
-    println!("{:?}", mbn_decoder.metadata());
+    println!("{:?}", mbinary_decoder.metadata());
 
     // Output files
-    let mbn_output_file = "raw_mbn_records.txt";
+    let mbinary_output_file = "raw_mbinary_records.txt";
     let dbn_output_file = "raw_dbn_records.txt";
 
     // Create or truncate output files
-    let mut mbn_file = File::create(mbn_output_file).await?;
+    let mut mbinary_file = File::create(mbinary_output_file).await?;
     let mut dbn_file = File::create(dbn_output_file).await?;
 
-    let mut mbn_count = 0;
+    let mut mbinary_count = 0;
     // Write MBN records to file
-    while let Some(mbn_record) = mbn_decoder.decode_ref().await? {
-        mbn_count += 1;
-        let record_enum = RecordEnum::from_ref(mbn_record)?;
-        mbn_file
+    while let Some(mbinary_record) = mbinary_decoder.decode_ref().await? {
+        mbinary_count += 1;
+        let record_enum = RecordEnum::from_ref(mbinary_record)?;
+        mbinary_file
             .write_all(format!("{:?}\n", record_enum).as_bytes())
             .await?;
     }
@@ -42,12 +45,12 @@ pub async fn compare_dbn_raw_output(dbn_filepath: PathBuf, mbn_filepath: &PathBu
             .write_all(format!("{:?}\n", dbn_record_enum).as_bytes())
             .await?;
     }
-    println!("MBN length: {:?}", mbn_count);
+    println!("MBN length: {:?}", mbinary_count);
     println!("DBN length: {:?}", dbn_count);
 
     println!(
         "MBN records written to: {}, DBN records written to: {}",
-        mbn_output_file, dbn_output_file
+        mbinary_output_file, dbn_output_file
     );
 
     Ok(())
@@ -86,13 +89,13 @@ pub async fn find_duplicates(filepath: &PathBuf) -> Result<usize> {
 mod tests {
     use super::*;
     use crate::error::Result;
-    use crate::pipeline::vendors::v_databento::transform::{instrument_id_map, to_mbn};
-    use mbn::encode::RecordEncoder;
-    use mbn::enums::{Dataset, Schema};
-    use mbn::metadata::Metadata;
-    use mbn::record_ref::RecordRef;
-    use mbn::symbols::SymbolMap;
-    use mbn::{
+    use crate::pipeline::vendors::v_databento::transform::{instrument_id_map, to_mbinary};
+    use mbinary::encode::RecordEncoder;
+    use mbinary::enums::{Dataset, Schema};
+    use mbinary::metadata::Metadata;
+    use mbinary::record_ref::RecordRef;
+    use mbinary::symbols::SymbolMap;
+    use mbinary::{
         self,
         records::{BidAskPair, Mbp1Msg, RecordHeader},
     };
@@ -103,31 +106,31 @@ mod tests {
     #[serial]
     // #[ignore]
     async fn test_find_duplicate_error_fix() -> Result<()> {
-        let mbn_file = PathBuf::from("tests/data/midas/HEQ4_mbp1.bin");
+        let mbinary_file = PathBuf::from("tests/data/midas/HEQ4_mbp1.bin");
         let dbn_file = PathBuf::from(
             "tests/data/databento/GLBX.MDP3_mbp-1_HEQ4_2024-03-05T00:00:00Z_2024-03-06T00:00:00Z.dbn",
         );
 
-        // Convert to mbn
+        // Convert to mbinary
         let (mut decoder, map) = read_dbn_file(dbn_file.clone()).await?;
 
-        let mut mbn_map = HashMap::new();
-        mbn_map.insert("HEQ4".to_string(), 21 as u32);
-        let new_map = instrument_id_map(map, mbn_map)?;
+        let mut mbinary_map = HashMap::new();
+        mbinary_map.insert("HEQ4".to_string(), 21 as u32);
+        let new_map = instrument_id_map(map, mbinary_map)?;
         let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
 
-        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file).await?;
+        let _ = to_mbinary(&metadata, &mut decoder, &new_map, &mbinary_file).await?;
 
         // Compare files
-        compare_dbn_raw_output(dbn_file.clone(), &mbn_file).await?;
+        compare_dbn_raw_output(dbn_file.clone(), &mbinary_file).await?;
 
-        // Check duplicates mbn
-        let duplicates_count = find_duplicates(&mbn_file).await?;
+        // Check duplicates mbinary
+        let duplicates_count = find_duplicates(&mbinary_file).await?;
         assert_eq!(duplicates_count, 0);
 
         // Cleanup
-        if mbn_file.exists() {
-            std::fs::remove_file(&mbn_file).expect("Failed to delete the test file.");
+        if mbinary_file.exists() {
+            std::fs::remove_file(&mbinary_file).expect("Failed to delete the test file.");
         }
         Ok(())
     }

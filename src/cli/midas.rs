@@ -2,7 +2,7 @@ use crate::cli::ProcessCommand;
 use crate::context::Context;
 use crate::error::Result;
 use crate::pipeline::midas::checks::find_duplicates;
-use crate::pipeline::midas::compare::compare_mbn;
+use crate::pipeline::midas::compare::compare_mbinary;
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
@@ -39,7 +39,8 @@ impl ProcessCommand for MidasCommands {
                 filepath1,
                 filepath2,
             } => {
-                let _ = compare_mbn(&PathBuf::from(filepath1), &PathBuf::from(filepath2)).await?;
+                let _ =
+                    compare_mbinary(&PathBuf::from(filepath1), &PathBuf::from(filepath2)).await?;
 
                 Ok(())
             }

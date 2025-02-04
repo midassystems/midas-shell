@@ -37,8 +37,8 @@ pub enum Error {
     InvalidDownloadType,
     #[error("Time Format error: {0}")]
     FormatError(#[from] time::error::Format),
-    #[error("MBN error: {0}")]
-    MbnError(#[from] mbn::error::Error),
+    #[error("Mbinary error: {0}")]
+    MbinaryError(#[from] mbinary::error::Error),
     #[error("Request error: {0}")]
     TracingError(#[from] tracing::subscriber::SetGlobalDefaultError),
     // #[error("Anyhow error: {0}")]

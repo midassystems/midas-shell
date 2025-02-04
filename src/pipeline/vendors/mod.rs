@@ -2,7 +2,7 @@ pub mod v_databento;
 
 use crate::error::{Error, Result};
 use async_trait::async_trait;
-use mbn::enums::Dataset;
+use mbinary::enums::Dataset;
 use midas_client::historical::Historical;
 use midas_client::instrument::Instruments;
 use std::path::PathBuf;
@@ -35,23 +35,23 @@ pub trait Vendor {
         download_approval: bool,
     ) -> Result<()>;
 
-    /// Transforms data from vendor format to mbn format, saves to staging file.
+    /// Transforms data from vendor format to mbinary format, saves to staging file.
     async fn transform(
         &self,
         dataset: Dataset,
         download_path: &PathBuf,
-        mbn_filename: &PathBuf,
+        mbinary_filename: &PathBuf,
         instrument_client: &Instruments,
         env_dirs: bool,
     ) -> Result<PathBuf>;
 
-    /// Transforms data from vendor format to mbn format, saves to staging file.
+    /// Transforms data from vendor format to mbinary format, saves to staging file.
     async fn stage(
         &self,
         dataset: Dataset,
         download_type: &DownloadType,
         dbn_path: &PathBuf,
-        mbn_filename: &PathBuf,
+        mbinary_filename: &PathBuf,
         instrument_client: &Instruments,
     ) -> Result<Vec<PathBuf>>;
 

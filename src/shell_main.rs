@@ -1,5 +1,5 @@
-use repl_shell::error::Result;
-use repl_shell::repl::Repl;
+use midas_clilib::error::Result;
+use midas_clilib::repl::Repl;
 
 #[tokio::main]
 async fn main() -> Result<()> {

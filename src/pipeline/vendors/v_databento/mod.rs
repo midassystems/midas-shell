@@ -14,18 +14,18 @@ use async_trait::async_trait;
 use client::DatabentoClient;
 use databento::dbn;
 use extract::{read_dbn_batch_dir, read_dbn_file};
-use mbn::enums::Dataset;
-use mbn::enums::Schema;
-use mbn::metadata::Metadata;
-use mbn::symbols::{Instrument, SymbolMap};
-use mbn::vendors::{VendorData, Vendors};
+use mbinary::enums::Dataset;
+use mbinary::enums::Schema;
+use mbinary::metadata::Metadata;
+use mbinary::symbols::{Instrument, SymbolMap};
+use mbinary::vendors::{VendorData, Vendors};
 use midas_client::historical::Historical;
 use midas_client::instrument::Instruments;
 use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
 use time::{macros::time, OffsetDateTime};
-use transform::{instrument_id_map, to_mbn};
+use transform::{instrument_id_map, to_mbinary};
 
 pub struct DatabentoVendor {
     databento_client: DatabentoClient,
@@ -46,7 +46,7 @@ impl DatabentoVendor {
         schema: &dbn::Schema,
         stype: &dbn::SType,
         dbn_dataset: &dbn::Dataset,
-        mbn_dataset: &Dataset,
+        mbinary_dataset: &Dataset,
         client: &Historical,
         instrument_client: &Instruments,
         download_approval: bool,
@@ -66,7 +66,7 @@ impl DatabentoVendor {
             .await?;
 
         // Mbn file path
-        let mbn_filename = PathBuf::from(format!(
+        let mbinary_filename = PathBuf::from(format!(
             "{}_{}_{}_{}.bin",
             &ticker.ticker,
             &stype,
@@ -77,11 +77,11 @@ impl DatabentoVendor {
         // Stage
         let files = self
             .stage(
-                // mbn_map,
-                *mbn_dataset,
+                // mbinary_map,
+                *mbinary_dataset,
                 &download_type,
                 &file_name,
-                &mbn_filename,
+                &mbinary_filename,
                 instrument_client,
             )
             .await?;
@@ -249,7 +249,7 @@ impl Vendor for DatabentoVendor {
         &self,
         dataset: Dataset,
         dbn_filename: &PathBuf,
-        mbn_filename: &PathBuf,
+        mbinary_filename: &PathBuf,
         instrument_client: &Instruments,
         env_dirs: bool,
     ) -> Result<PathBuf> {
@@ -266,7 +266,7 @@ impl Vendor for DatabentoVendor {
         (records, dbn_map) = read_dbn_file(dbn_filepath.clone()).await?;
 
         // Mbn map
-        let mut mbn_map = HashMap::new();
+        let mut mbinary_map = HashMap::new();
 
         for (_id, ticker) in dbn_map.iter() {
             let api_response = instrument_client
@@ -274,33 +274,33 @@ impl Vendor for DatabentoVendor {
                 .await
                 .map_err(|_| error!(CustomError, "Error getting ticker : {} .", ticker.clone()))?;
             let instrument: &Instrument = &api_response.data[0];
-            mbn_map.insert(instrument.ticker.clone(), instrument.instrument_id.unwrap());
+            mbinary_map.insert(instrument.ticker.clone(), instrument.instrument_id.unwrap());
         }
 
         // -- TRANSFORM
         // Map DBN instrument to MBN insturment
-        let mbn_filepath = if env_dirs {
+        let mbinary_filepath = if env_dirs {
             let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
-            &PathBuf::from(processed_dir).join(mbn_filename)
+            &PathBuf::from(processed_dir).join(mbinary_filename)
         } else {
-            mbn_filename
+            mbinary_filename
         };
 
-        let new_map = instrument_id_map(dbn_map, mbn_map.clone())?;
+        let new_map = instrument_id_map(dbn_map, mbinary_map.clone())?;
         let metadata = Metadata::new(Schema::Mbp1, dataset, 0, 0, SymbolMap::new());
-        let _ = to_mbn(&metadata, &mut records, &new_map, mbn_filepath).await?;
+        let _ = to_mbinary(&metadata, &mut records, &new_map, mbinary_filepath).await?;
         let _ = drop(records);
 
         // Check for duplicates
-        let duplicates_count = find_duplicates(mbn_filepath).await?;
+        let duplicates_count = find_duplicates(mbinary_filepath).await?;
 
         if duplicates_count > 0 {
-            std::fs::remove_file(mbn_filepath.clone())?;
+            std::fs::remove_file(mbinary_filepath.clone())?;
         }
 
-        println!("Staged data path : {:?}", mbn_filepath);
+        println!("Staged data path : {:?}", mbinary_filepath);
 
-        Ok(mbn_filepath.clone())
+        Ok(mbinary_filepath.clone())
     }
 
     async fn stage(
@@ -308,7 +308,7 @@ impl Vendor for DatabentoVendor {
         dataset: Dataset,
         download_type: &DownloadType,
         download_path: &PathBuf,
-        mbn_filename: &PathBuf,
+        mbinary_filename: &PathBuf,
         instrument_client: &Instruments,
     ) -> Result<Vec<PathBuf>> {
         let mut files_list = Vec::new();
@@ -318,12 +318,12 @@ impl Vendor for DatabentoVendor {
                 .transform(
                     dataset,
                     download_path,
-                    mbn_filename,
+                    mbinary_filename,
                     instrument_client,
                     true,
                 )
                 .await?;
-            files_list.push(mbn_filename.clone());
+            files_list.push(mbinary_filename.clone());
         } else {
             let raw_dir = env::var("RAW_DIR").expect("RAW_DIR not set.");
             let path = PathBuf::from(&raw_dir)
@@ -335,17 +335,17 @@ impl Vendor for DatabentoVendor {
             let processed_dir = env::var("PROCESSED_DIR").expect("PROCESSED_DIR not set.");
 
             for file in files {
-                let mbn_file = PathBuf::from(format!(
+                let mbinary_file = PathBuf::from(format!(
                     "{}_{}",
                     count,
-                    mbn_filename.file_name().unwrap().to_string_lossy()
+                    mbinary_filename.file_name().unwrap().to_string_lossy()
                 ));
 
-                let mbn_path = PathBuf::from(&processed_dir).join(&mbn_file);
+                let mbinary_path = PathBuf::from(&processed_dir).join(&mbinary_file);
                 let _ = self
-                    .transform(dataset, &file, &mbn_path, &instrument_client, false)
+                    .transform(dataset, &file, &mbinary_path, &instrument_client, false)
                     .await?;
-                files_list.push(mbn_file);
+                files_list.push(mbinary_file);
                 count += 1;
             }
         }
@@ -403,9 +403,9 @@ mod tests {
     use super::*;
     use crate::utils::date_to_unix_nanos;
     use dotenv::dotenv;
-    use mbn::enums::Schema;
-    use mbn::params::RetrieveParams;
-    use mbn::vendors::{DatabentoData, VendorData, Vendors};
+    use mbinary::enums::Schema;
+    use mbinary::params::RetrieveParams;
+    use mbinary::vendors::{DatabentoData, VendorData, Vendors};
     use serial_test::serial;
     use std::env;
     use std::str::FromStr;
@@ -518,14 +518,20 @@ mod tests {
 
         let databento_vendor = DatabentoVendor::new(&api_key)?;
         let dbn_file = PathBuf::from(FILENAME);
-        let mbn_file = PathBuf::from("test_databento_transform.bin");
+        let mbinary_file = PathBuf::from("test_databento_transform.bin");
         let mut ids = Vec::new();
         ids.push(create_test_ticker("GC.n.0").await?);
         ids.push(create_test_ticker("ZM.n.0").await?);
 
         // Test
         let path = databento_vendor
-            .transform(Dataset::Futures, &dbn_file, &mbn_file, &inst_client, true)
+            .transform(
+                Dataset::Futures,
+                &dbn_file,
+                &mbinary_file,
+                &inst_client,
+                true,
+            )
             .await?;
 
         // Validate
@@ -557,7 +563,7 @@ mod tests {
         let databento_vendor = DatabentoVendor::new(&api_key)?;
         let download_type = DownloadType::Stream;
         let dbn_file = PathBuf::from(FILENAME);
-        let mbn_file = PathBuf::from("test_databento_transform.bin");
+        let mbinary_file = PathBuf::from("test_databento_transform.bin");
         let mut ids = Vec::new();
         ids.push(create_test_ticker("GC.n.0").await?);
         ids.push(create_test_ticker("ZM.n.0").await?);
@@ -568,7 +574,7 @@ mod tests {
                 Dataset::Futures,
                 &download_type,
                 &dbn_file,
-                &mbn_file,
+                &mbinary_file,
                 &inst_client,
             )
             .await?;
@@ -614,7 +620,7 @@ mod tests {
         let dbn_file = PathBuf::from(
             "batch_GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-08-20T00:00:00Z_2024-08-20T05:00:00Z.dbn",
         );
-        let mbn_file = PathBuf::from("test_databento_transform.bin");
+        let mbinary_file = PathBuf::from("test_databento_transform.bin");
         let mut ids = Vec::new();
         ids.push(create_test_ticker("ZM.n.0").await?);
         ids.push(create_test_ticker("GC.n.0").await?);
@@ -625,7 +631,7 @@ mod tests {
                 Dataset::Futures,
                 &download_type,
                 &dbn_file,
-                &mbn_file,
+                &mbinary_file,
                 &inst_client,
             )
             .await?;
@@ -673,7 +679,7 @@ mod tests {
         let databento_vendor = DatabentoVendor::new(&api_key)?;
         let download_type = DownloadType::Stream;
         let dbn_file = PathBuf::from(FILENAME);
-        let mbn_file = PathBuf::from("test_databento_transform.bin");
+        let mbinary_file = PathBuf::from("test_databento_transform.bin");
         let mut ids = Vec::new();
         ids.push(create_test_ticker("ZM.n.0").await?);
         ids.push(create_test_ticker("GC.n.0").await?);
@@ -683,7 +689,7 @@ mod tests {
                 Dataset::Futures,
                 &download_type,
                 &dbn_file,
-                &mbn_file,
+                &mbinary_file,
                 &inst_client,
             )
             .await?;
@@ -699,7 +705,7 @@ mod tests {
             "2024-08-21",
             Schema::Mbp1,
             Dataset::Futures,
-            mbn::enums::Stype::Raw,
+            mbinary::enums::Stype::Raw,
         )?;
         let response = hist_client.get_records(&params).await?;
         assert!(response.data.len() > 0);

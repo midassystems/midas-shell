@@ -1,17 +1,20 @@
 use crate::error::Result;
-use mbn::decode::AsyncDecoder;
-use mbn::record_enum::RecordEnum;
-use mbn::records::Record;
+use mbinary::decode::AsyncDecoder;
+use mbinary::record_enum::RecordEnum;
+use mbinary::records::Record;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
 
-pub async fn compare_mbn(mbn_filepath1: &PathBuf, mbn_filepath2: &PathBuf) -> Result<()> {
+pub async fn compare_mbinary(
+    mbinary_filepath1: &PathBuf,
+    mbinary_filepath2: &PathBuf,
+) -> Result<()> {
     let batch_size = 1000; // Batch size for processing
-    let mut decoder1 = AsyncDecoder::<BufReader<File>>::from_file(mbn_filepath1).await?;
-    let mut decoder2 = AsyncDecoder::<BufReader<File>>::from_file(mbn_filepath2).await?;
+    let mut decoder1 = AsyncDecoder::<BufReader<File>>::from_file(mbinary_filepath1).await?;
+    let mut decoder2 = AsyncDecoder::<BufReader<File>>::from_file(mbinary_filepath2).await?;
 
     let mut batch1: HashMap<u64, Vec<RecordEnum>> = HashMap::new();
     let mut decoder_done = false;
@@ -97,10 +100,10 @@ mod tests {
     use super::*;
     use crate::pipeline::vendors::v_databento::{
         extract::read_dbn_file,
-        transform::{instrument_id_map, to_mbn},
+        transform::{instrument_id_map, to_mbinary},
     };
-    use mbn::metadata::Metadata;
-    use mbn::{
+    use mbinary::metadata::Metadata;
+    use mbinary::{
         enums::{Dataset, Schema},
         symbols::SymbolMap,
     };
@@ -114,30 +117,30 @@ mod tests {
         let (mut decoder, map) = read_dbn_file(file_path).await?;
 
         // MBN instrument map
-        let mut mbn_map = HashMap::new();
-        mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
-        mbn_map.insert("GC.n.0".to_string(), 21 as u32);
+        let mut mbinary_map = HashMap::new();
+        mbinary_map.insert("ZM.n.0".to_string(), 20 as u32);
+        mbinary_map.insert("GC.n.0".to_string(), 21 as u32);
         // Map DBN instrument to MBN insturment
-        let new_map = instrument_id_map(map, mbn_map)?;
+        let new_map = instrument_id_map(map, mbinary_map)?;
 
         // Test
         let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
-        let mbn_file_name =
+        let mbinary_file_name =
             PathBuf::from("tests/data/compare_ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
-        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file_name).await?;
+        let _ = to_mbinary(&metadata, &mut decoder, &new_map, &mbinary_file_name).await?;
 
-        Ok(mbn_file_name)
+        Ok(mbinary_file_name)
     }
 
     #[tokio::test]
     #[serial_test::serial]
     // #[ignore]
-    async fn test_compare_mbn_equal() -> Result<()> {
+    async fn test_compare_mbinary_equal() -> Result<()> {
         let path = dummy_file().await?;
 
         // Test
-        let result = compare_mbn(&path, &path).await?;
+        let result = compare_mbinary(&path, &path).await?;
 
         // Validate
         assert!(result == ());
@@ -153,12 +156,12 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     // #[ignore]
-    async fn test_compare_mbn_unequal() -> Result<()> {
-        let mbn_file_path1 = PathBuf::from("tests/data/midas/bbo1m_test.bin");
+    async fn test_compare_mbinary_unequal() -> Result<()> {
+        let mbinary_file_path1 = PathBuf::from("tests/data/midas/bbo1m_test.bin");
         let path = dummy_file().await?;
 
         // Test
-        let x = compare_mbn(&mbn_file_path1, &path).await?;
+        let x = compare_mbinary(&mbinary_file_path1, &path).await?;
 
         // Validate
         assert!(x == ());

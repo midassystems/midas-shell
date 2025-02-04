@@ -1,13 +1,13 @@
 use anyhow::Result;
 use databento::dbn;
 use dotenv::dotenv;
-use mbn::enums::{Dataset, Schema, Stype};
-use mbn::symbols::Instrument;
-use mbn::vendors::{DatabentoData, VendorData, Vendors};
+use mbinary::enums::{Dataset, Schema, Stype};
+use mbinary::symbols::Instrument;
+use mbinary::vendors::{DatabentoData, VendorData, Vendors};
 use midas_client::instrument::Instruments;
-use repl_shell::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
-use repl_shell::context::Context;
-use repl_shell::{self, cli::ProcessCommand};
+use midas_clilib::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
+use midas_clilib::context::Context;
+use midas_clilib::{self, cli, cli::ProcessCommand};
 use serial_test::serial;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -40,7 +40,7 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
     };
 
     // Command
-    let command = repl_shell::cli::instrument::InstrumentCommands::Create(create_args);
+    let command = cli::instrument::InstrumentCommands::Create(create_args);
     command.process_command(&context).await?;
 
     Ok(())
@@ -82,7 +82,7 @@ async fn test_create_instrument() -> Result<()> {
         expiration_date: "2025-01-27".to_string(),
         active: true,
     };
-    let command = repl_shell::cli::instrument::InstrumentCommands::Create(create_args);
+    let command = cli::instrument::InstrumentCommands::Create(create_args);
     command.process_command(&context).await?;
 
     // Cleanup
@@ -104,7 +104,7 @@ async fn test_get_all_instruments() -> Result<()> {
         dataset: dataset.as_str().to_string(),
         vendor: None,
     };
-    let command = repl_shell::cli::instrument::InstrumentCommands::Get(get_args);
+    let command = cli::instrument::InstrumentCommands::Get(get_args);
     command.process_command(&context).await?;
 
     // Cleanup
@@ -128,7 +128,7 @@ async fn test_get_instrument_by_vendor() -> Result<()> {
         dataset: dataset.as_str().to_string(),
         vendor: Some(vendor.as_str().to_string()),
     };
-    let command = repl_shell::cli::instrument::InstrumentCommands::Get(get_args);
+    let command = cli::instrument::InstrumentCommands::Get(get_args);
     command.process_command(&context).await?;
 
     // Cleanup
@@ -166,7 +166,7 @@ async fn test_update_instrument() -> Result<()> {
         active: false,
     };
 
-    let command = repl_shell::cli::instrument::InstrumentCommands::Update(args);
+    let command = cli::instrument::InstrumentCommands::Update(args);
     command.process_command(&context).await?;
 
     // Cleanup
@@ -194,7 +194,7 @@ async fn test_delete_instrument() -> Result<()> {
     let args = DeleteArgs {
         instrument_id: id as i32,
     };
-    let command = repl_shell::cli::instrument::InstrumentCommands::Delete(args);
+    let command = cli::instrument::InstrumentCommands::Delete(args);
     command.process_command(&context).await?;
 
     Ok(())
@@ -210,7 +210,7 @@ async fn test_list_strategies() -> Result<()> {
     let context = Context::init()?;
 
     // Command
-    let command = repl_shell::cli::strategies::StrategyCommands::List;
+    let command = cli::strategies::StrategyCommands::List;
     command.process_command(&context).await?;
 
     Ok(())
@@ -224,7 +224,7 @@ async fn test_list_backtests() -> Result<()> {
     let context = Context::init()?;
 
     // Command
-    let command = repl_shell::cli::backtest::BacktestCommands::List;
+    let command = cli::backtest::BacktestCommands::List;
     command.process_command(&context).await?;
 
     Ok(())
@@ -421,11 +421,11 @@ async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
     let context = Context::init()?;
 
     // Mbp1
-    let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Upload {
+    let upload_cmd = cli::vendors::databento::DatabentoCommands::Upload {
         dataset: dataset.as_str().to_string(),
         dbn_filepath:"GLBX.MDP3_mbp-1_HEG4_HEJ4_LEG4_LEJ4_LEM4_HEM4_HEK4_2024-02-09T00:00:00Z_2024-02-17T00:00:00Z.dbn".to_string(),
         dbn_downloadtype: "stream".to_string(),
-        mbn_filepath: "system_tests_data.bin".to_string(),
+        midas_filepath: "system_tests_data.bin".to_string(),
     };
 
     upload_cmd.process_command(&context).await?;
@@ -464,7 +464,7 @@ async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
             stype.to_string()
         );
 
-        let historical_command = repl_shell::cli::historical::HistoricalArgs {
+        let historical_command = cli::historical::HistoricalArgs {
             symbols: tickers.clone(),
             start: "2024-02-13 00:00:00".to_string(),
             end: "2024-02-16 00:00:00".to_string(),
@@ -513,7 +513,7 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
             stype.to_string()
         );
 
-        let historical_command = repl_shell::cli::historical::HistoricalArgs {
+        let historical_command = cli::historical::HistoricalArgs {
             symbols: tickers.clone(),
             start: "2024-02-13 00:00:00".to_string(),
             end: "2024-02-17 00:00:00".to_string(),
@@ -546,7 +546,7 @@ async fn test_compare_files_continuous() -> Result<()> {
     ];
     for schema in &schemas {
         println!("Schema: {:?}", schema);
-        let mbn_filepath = format!(
+        let mbinary_filepath = format!(
             "tests/data/midas/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
@@ -557,9 +557,9 @@ async fn test_compare_files_continuous() -> Result<()> {
             schema.to_string(),
         );
 
-        let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
+        let compare_command = cli::vendors::databento::DatabentoCommands::Compare {
             dbn_filepath,
-            mbn_filepath,
+            midas_filepath: mbinary_filepath,
         };
 
         compare_command.process_command(&context).await?;
@@ -587,7 +587,7 @@ async fn test_compare_files_raw() -> Result<()> {
     for schema in &schemas {
         println!("Schema: {:?}", schema);
 
-        let mbn_filepath = format!(
+        let mbinary_filepath = format!(
             "tests/data/midas/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
@@ -598,9 +598,9 @@ async fn test_compare_files_raw() -> Result<()> {
             schema.to_string(),
         );
 
-        let compare_command = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
+        let compare_command = cli::vendors::databento::DatabentoCommands::Compare {
             dbn_filepath,
-            mbn_filepath,
+            midas_filepath: mbinary_filepath,
         };
 
         compare_command.process_command(&context).await?;
@@ -626,32 +626,32 @@ async fn test_databento_transform() -> anyhow::Result<()> {
 
     // Mbp1
     let dbn_filepath= "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn";
-    let mbn_filepath = "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin";
+    let mbinary_filepath = "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin";
 
-    let upload_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Transform {
+    let upload_cmd = cli::vendors::databento::DatabentoCommands::Transform {
         dataset: dataset.as_str().to_string(),
         dbn_filepath: dbn_filepath.to_string(),
-        mbn_filepath: mbn_filepath.to_string(),
+        midas_filepath: mbinary_filepath.to_string(),
     };
 
     upload_cmd.process_command(&context).await?;
 
     // Check duplicates
-    let duplicatecheck_cmd = repl_shell::cli::midas::MidasCommands::Duplicates {
-        filepath: mbn_filepath.to_string(),
+    let duplicatecheck_cmd = cli::midas::MidasCommands::Duplicates {
+        filepath: mbinary_filepath.to_string(),
     };
 
     duplicatecheck_cmd.process_command(&context).await?;
 
     // Check duplicates
-    let compare_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Compare {
+    let compare_cmd = cli::vendors::databento::DatabentoCommands::Compare {
         dbn_filepath: dbn_filepath.to_string(),
-        mbn_filepath: mbn_filepath.to_string(),
+        midas_filepath: mbinary_filepath.to_string(),
     };
 
     compare_cmd.process_command(&context).await?;
 
-    let path = PathBuf::from(mbn_filepath);
+    let path = PathBuf::from(mbinary_filepath);
     if path.exists() {
         std::fs::remove_file(&path).expect("Failed to delete the test file.");
     }
@@ -676,7 +676,7 @@ async fn test_update_databento() -> Result<()> {
     let context = Context::init()?;
 
     // Mbp1
-    let update_cmd = repl_shell::cli::vendors::databento::DatabentoCommands::Update {
+    let update_cmd = cli::vendors::databento::DatabentoCommands::Update {
         dataset: dataset.as_str().to_string(),
         approval: true,
     };
@@ -701,7 +701,7 @@ async fn test_databento_download() -> Result<()> {
     let context = Context::init()?;
 
     // Mbp1
-    let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -715,7 +715,7 @@ async fn test_databento_download() -> Result<()> {
     to_file_command.process_command(&context).await?;
 
     // Ohlcv
-    let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -729,7 +729,7 @@ async fn test_databento_download() -> Result<()> {
     to_file_command.process_command(&context).await?;
 
     // Trades
-    let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -743,7 +743,7 @@ async fn test_databento_download() -> Result<()> {
     to_file_command.process_command(&context).await?;
 
     // Tbbo
-    let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -757,7 +757,7 @@ async fn test_databento_download() -> Result<()> {
     to_file_command.process_command(&context).await?;
 
     // Bbo
-    let to_file_command = repl_shell::cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),

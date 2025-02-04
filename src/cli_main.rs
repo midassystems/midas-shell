@@ -1,7 +1,7 @@
 use clap::Parser;
-use repl_shell::cli::{CliArgs, ProcessCommand};
-use repl_shell::context::Context;
-use repl_shell::error::Result;
+use midas_clilib::cli::{CliArgs, ProcessCommand};
+use midas_clilib::context::Context;
+use midas_clilib::error::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {

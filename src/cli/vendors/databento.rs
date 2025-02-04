@@ -6,7 +6,7 @@ use crate::pipeline::vendors::{v_databento::compare::compare_dbn, DownloadType, 
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use databento::dbn;
-use mbn::enums::Dataset;
+use mbinary::enums::Dataset;
 use std::path::PathBuf;
 use std::str::FromStr;
 use time::{format_description::well_known::Rfc3339, macros::time, OffsetDateTime};
@@ -105,7 +105,7 @@ pub enum DatabentoCommands {
 
         /// File path to save the downloaded binary data.
         #[arg(long)]
-        mbn_filepath: String,
+        midas_filepath: String,
     },
     /// Upload a databento file to database
     Upload {
@@ -122,14 +122,14 @@ pub enum DatabentoCommands {
 
         /// File path to save the downloaded binary data.
         #[arg(long)]
-        mbn_filepath: String,
+        midas_filepath: String,
     },
     /// Compare databento and midas data
     Compare {
         #[arg(long)]
         dbn_filepath: String,
         #[arg(long)]
-        mbn_filepath: String,
+        midas_filepath: String,
     },
 }
 
@@ -191,17 +191,17 @@ impl ProcessCommand for DatabentoCommands {
             DatabentoCommands::Transform {
                 dataset,
                 dbn_filepath,
-                mbn_filepath,
+                midas_filepath,
             } => {
                 let dbn_filepath = PathBuf::from(dbn_filepath);
-                let mbn_filepath = PathBuf::from(mbn_filepath);
+                let midas_filepath = PathBuf::from(midas_filepath);
                 let dataset = Dataset::from_str(dataset.as_str())
                     .map_err(|_| error!(CustomError, "Invalid dataset : {}", dataset.as_str()))?;
 
                 // Lock the mutex to get a mutable reference to DatabentoClient
                 let db_client = db_client.lock().await;
                 let _file = db_client
-                    .transform(dataset, &dbn_filepath, &mbn_filepath, &inst_client, false)
+                    .transform(dataset, &dbn_filepath, &midas_filepath, &inst_client, false)
                     .await?;
 
                 Ok(())
@@ -210,10 +210,10 @@ impl ProcessCommand for DatabentoCommands {
                 dataset,
                 dbn_filepath,
                 dbn_downloadtype,
-                mbn_filepath,
+                midas_filepath,
             } => {
                 let dbn_filepath = PathBuf::from(dbn_filepath);
-                let mbn_filepath = PathBuf::from(mbn_filepath);
+                let midas_filepath = PathBuf::from(midas_filepath);
                 let download_type = DownloadType::try_from(dbn_downloadtype.as_str())?;
                 let dataset_enum = Dataset::from_str(dataset.as_str())
                     .map_err(|_| error!(CustomError, "Invalid dataset : {}", dataset.as_str()))?;
@@ -225,7 +225,7 @@ impl ProcessCommand for DatabentoCommands {
                         dataset_enum,
                         &download_type,
                         &dbn_filepath,
-                        &mbn_filepath,
+                        &midas_filepath,
                         &inst_client,
                     )
                     .await?;
@@ -236,10 +236,10 @@ impl ProcessCommand for DatabentoCommands {
             }
             DatabentoCommands::Compare {
                 dbn_filepath,
-                mbn_filepath,
+                midas_filepath,
             } => {
-                let _ =
-                    compare_dbn(PathBuf::from(dbn_filepath), &PathBuf::from(mbn_filepath)).await?;
+                let _ = compare_dbn(PathBuf::from(dbn_filepath), &PathBuf::from(midas_filepath))
+                    .await?;
 
                 Ok(())
             }

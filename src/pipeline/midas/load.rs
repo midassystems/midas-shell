@@ -1,7 +1,7 @@
 use crate::error::Result;
-use mbn::decode::AsyncDecoder;
-use mbn::metadata::Metadata;
-use mbn::{
+use mbinary::decode::AsyncDecoder;
+use mbinary::metadata::Metadata;
+use mbinary::{
     self,
     encode::{MetadataEncoder, RecordEncoder},
     record_ref::RecordRef,
@@ -22,7 +22,11 @@ pub fn metadata_to_file(metadata: &Metadata, file_name: &PathBuf, append: bool) 
     Ok(())
 }
 
-pub async fn mbn_to_file(records: &Vec<Mbp1Msg>, file_name: &PathBuf, append: bool) -> Result<()> {
+pub async fn mbinary_to_file(
+    records: &Vec<Mbp1Msg>,
+    file_name: &PathBuf,
+    append: bool,
+) -> Result<()> {
     // Create RecordRef vector.
     let mut refs = Vec::new();
     for msg in records {
@@ -39,7 +43,7 @@ pub async fn mbn_to_file(records: &Vec<Mbp1Msg>, file_name: &PathBuf, append: bo
     Ok(())
 }
 
-pub async fn read_mbn_file(filepath: &PathBuf) -> Result<AsyncDecoder<BufReader<File>>> {
+pub async fn read_mbinary_file(filepath: &PathBuf) -> Result<AsyncDecoder<BufReader<File>>> {
     let decoder = AsyncDecoder::<BufReader<File>>::from_file(filepath).await?;
 
     Ok(decoder)
@@ -52,14 +56,14 @@ mod tests {
     use super::*;
     use crate::pipeline::vendors::v_databento::{
         extract::read_dbn_file,
-        transform::{instrument_id_map, to_mbn},
+        transform::{instrument_id_map, to_mbinary},
     };
-    use mbn::{
+    use mbinary::{
         self,
         record_enum::RecordEnum,
         records::{BidAskPair, Mbp1Msg, RecordHeader},
     };
-    use mbn::{
+    use mbinary::{
         enums::{Dataset, Schema},
         symbols::SymbolMap,
     };
@@ -74,37 +78,37 @@ mod tests {
         let (mut decoder, map) = read_dbn_file(file_path).await?;
 
         // MBN instrument map
-        let mut mbn_map = HashMap::new();
-        mbn_map.insert("ZM.n.0".to_string(), 20 as u32);
-        mbn_map.insert("GC.n.0".to_string(), 21 as u32);
+        let mut mbinary_map = HashMap::new();
+        mbinary_map.insert("ZM.n.0".to_string(), 20 as u32);
+        mbinary_map.insert("GC.n.0".to_string(), 21 as u32);
 
         // Map DBN instrument to MBN insturment
-        let new_map = instrument_id_map(map, mbn_map)?;
+        let new_map = instrument_id_map(map, mbinary_map)?;
         let metadata = Metadata::new(Schema::Mbp1, Dataset::Futures, 0, 0, SymbolMap::new());
 
         // Test
-        let mbn_file_name =
+        let mbinary_file_name =
             PathBuf::from("tests/data/load_ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
-        let _ = to_mbn(&metadata, &mut decoder, &new_map, &mbn_file_name).await?;
+        let _ = to_mbinary(&metadata, &mut decoder, &new_map, &mbinary_file_name).await?;
 
-        Ok(mbn_file_name)
+        Ok(mbinary_file_name)
     }
 
     #[tokio::test]
     // #[ignore]
     #[serial_test::serial]
-    async fn test_read_mbn_file() -> Result<()> {
+    async fn test_read_mbinary_file() -> Result<()> {
         let file_path = dummy_file().await?;
 
         // let file_path = PathBuf::from("tests/data/ZM.n.0_GC.n.0_mbp-1_2024-08-20_2024-08-20.bin");
 
         // Test
-        let mut decoder = read_mbn_file(&file_path).await?;
+        let mut decoder = read_mbinary_file(&file_path).await?;
 
         // Validate
-        let mbn_records = decoder.decode().await?;
-        assert!(mbn_records.len() > 0);
+        let mbinary_records = decoder.decode().await?;
+        assert!(mbinary_records.len() > 0);
 
         //Cleanup
         if file_path.exists() {
@@ -116,7 +120,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_mbn_to_file() -> Result<()> {
+    async fn test_mbinary_to_file() -> Result<()> {
         // Note if a fils is addee teh length woill ahve to recalculated
         let records = vec![
             Mbp1Msg {
@@ -257,8 +261,8 @@ mod tests {
         ];
 
         // Test
-        let path = PathBuf::from("tests/data/test_mbn_to_file.bin");
-        mbn_to_file(&records, &path, false).await?;
+        let path = PathBuf::from("tests/data/test_mbinary_to_file.bin");
+        mbinary_to_file(&records, &path, false).await?;
 
         // Validate
         let mut buffer = Vec::new();
