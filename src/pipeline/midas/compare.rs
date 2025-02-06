@@ -102,11 +102,14 @@ mod tests {
         extract::read_dbn_file,
         transform::{instrument_id_map, to_mbinary},
     };
-    use mbinary::metadata::Metadata;
     use mbinary::{
+        encode::CombinedEncoder,
         enums::{Dataset, Schema},
+        record_ref::RecordRef,
+        records::BidAskPair,
         symbols::SymbolMap,
     };
+    use mbinary::{metadata::Metadata, records::Mbp1Msg};
 
     async fn dummy_file() -> Result<PathBuf> {
         // Load DBN file
@@ -133,6 +136,81 @@ mod tests {
         Ok(mbinary_file_name)
     }
 
+    async fn create_test_file() -> anyhow::Result<PathBuf> {
+        // Metadata
+        let mut symbol_map = SymbolMap::new();
+        symbol_map.add_instrument("AAPL", 1);
+        symbol_map.add_instrument("TSLA", 2);
+
+        let metadata = Metadata::new(
+            Schema::Mbp1,
+            Dataset::Option,
+            1234567898765,
+            123456765432,
+            symbol_map,
+        );
+
+        // Record
+        let msg1 = Mbp1Msg {
+            hd: mbinary::records::RecordHeader::new::<Mbp1Msg>(1, 1622471124, 0),
+            price: 12345676543,
+            size: 1234543,
+            action: 0,
+            side: 0,
+            depth: 0,
+            flags: 0,
+            ts_recv: 1231,
+            ts_in_delta: 123432,
+            sequence: 23432,
+            discriminator: 0,
+            levels: [BidAskPair {
+                bid_px: 10000000,
+                ask_px: 200000,
+                bid_sz: 3000000,
+                ask_sz: 400000000,
+                bid_ct: 50000000,
+                ask_ct: 60000000,
+            }],
+        };
+        let msg2 = Mbp1Msg {
+            hd: mbinary::records::RecordHeader::new::<Mbp1Msg>(1, 1622471124, 0),
+            price: 12345676543,
+            size: 1234543,
+            action: 0,
+            side: 0,
+            depth: 0,
+            flags: 0,
+            ts_recv: 1231,
+            ts_in_delta: 123432,
+            sequence: 23432,
+            discriminator: 0,
+            levels: [BidAskPair {
+                bid_px: 10000000,
+                ask_px: 200000,
+                bid_sz: 3000000,
+                ask_sz: 400000000,
+                bid_ct: 50000000,
+                ask_ct: 60000000,
+            }],
+        };
+
+        let record_ref1: RecordRef = (&msg1).into();
+        let record_ref2: RecordRef = (&msg2).into();
+        let records = &[record_ref1, record_ref2];
+
+        let mut buffer = Vec::new();
+        let mut encoder = CombinedEncoder::new(&mut buffer);
+        encoder
+            .encode(&metadata, records)
+            .expect("Error on encoding");
+
+        // Test
+        let file = PathBuf::from("tests/data/test_compare_unequal.bin");
+        let _ = encoder.write_to_file(&file, false);
+
+        Ok(file)
+    }
+
     #[tokio::test]
     #[serial_test::serial]
     // #[ignore]
@@ -156,8 +234,8 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     // #[ignore]
-    async fn test_compare_mbinary_unequal() -> Result<()> {
-        let mbinary_file_path1 = PathBuf::from("tests/data/midas/bbo1m_test.bin");
+    async fn test_compare_mbinary_unequal() -> anyhow::Result<()> {
+        let mbinary_file_path1 = create_test_file().await?;
         let path = dummy_file().await?;
 
         // Test
@@ -169,6 +247,9 @@ mod tests {
         //Cleanup
         if path.exists() {
             std::fs::remove_file(&path).expect("Failed to delete the test file.");
+        }
+        if path.exists() {
+            std::fs::remove_file(&mbinary_file_path1).expect("Failed to delete the test file.");
         }
 
         Ok(())

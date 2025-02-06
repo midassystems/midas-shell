@@ -265,6 +265,7 @@ async fn test_upload_get_compare() -> Result<()> {
 
 async fn create_tickers() -> anyhow::Result<()> {
     dotenv().ok();
+
     let base_url = std::env::var("INSTRUMENT_URL").expect("Expected database_url.");
     let client = Instruments::new(&base_url);
 
@@ -459,7 +460,7 @@ async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
 
     for schema in &schemas {
         let file_path = format!(
-            "tests/data/midas/{}_{}_test.bin",
+            "tests/data/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
         );
@@ -508,7 +509,7 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
 
     for schema in &schemas {
         let file_path = format!(
-            "tests/data/midas/{}_{}_test.bin",
+            "tests/data/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
         );
@@ -547,7 +548,7 @@ async fn test_compare_files_continuous() -> Result<()> {
     for schema in &schemas {
         println!("Schema: {:?}", schema);
         let mbinary_filepath = format!(
-            "tests/data/midas/{}_{}_test.bin",
+            "tests/data/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
         );
@@ -588,7 +589,7 @@ async fn test_compare_files_raw() -> Result<()> {
         println!("Schema: {:?}", schema);
 
         let mbinary_filepath = format!(
-            "tests/data/midas/{}_{}_test.bin",
+            "tests/data/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
         );

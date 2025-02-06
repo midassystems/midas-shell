@@ -106,7 +106,7 @@ mod tests {
     #[serial]
     // #[ignore]
     async fn test_find_duplicate_error_fix() -> Result<()> {
-        let mbinary_file = PathBuf::from("tests/data/midas/HEQ4_mbp1.bin");
+        let mbinary_file = PathBuf::from("tests/data/HEQ4_mbp1.bin");
         let dbn_file = PathBuf::from(
             "tests/data/databento/GLBX.MDP3_mbp-1_HEQ4_2024-03-05T00:00:00Z_2024-03-06T00:00:00Z.dbn",
         );
