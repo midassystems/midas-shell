@@ -1,6 +1,7 @@
 use colored::Colorize;
 use console::measure_text_width;
 
+#[allow(dead_code)]
 pub(crate) fn print_header() {
     println!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
@@ -88,12 +89,13 @@ pub(crate) fn print_menu() {
     let total_width = 77;
 
     println!(
-        r"
-╭─────────────────────────────────── {} ────────────────────────────────────╮
-│                                                                             │
-│ {}                                                                   │",
-        "Home".bold(),
-        "Commands:".bold(),
+        r"╭─────────────────────────────────── {} ───────────────────────────────────╮",
+        "Midas".bold().green()
+    );
+    println!("│                                                                             │");
+    println!(
+        r"│ {}                                                                   │",
+        "Commands:".bold()
     );
 
     // Print each line with dynamic padding

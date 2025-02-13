@@ -111,8 +111,8 @@ impl Repl {
         let mut commands = get_commands();
         commands.push("help".to_string()); // clap default not defined explicitly
 
+        // let highlighter = Box::new(ExampleHighlighter::new(commands.clone()));
         let completer = Box::new(ReplCompleter::new());
-        let highlighter = Box::new(ExampleHighlighter::new(commands.clone()));
         let completion_menu = Box::new(ColumnarMenu::default().with_name("completion_menu"));
         let validator = Box::new(DefaultValidator);
 
@@ -120,7 +120,7 @@ impl Repl {
             .with_edit_mode(Box::new(Emacs::new(self.keybindings.clone())))
             .with_completer(completer)
             .with_menu(ReedlineMenu::EngineCompleter(completion_menu))
-            .with_highlighter(highlighter)
+            // .with_highlighter(highlighter)
             .with_validator(validator);
 
         if self.hinter_enabled {
@@ -142,7 +142,7 @@ impl Repl {
 
     pub async fn run(&mut self) -> Result<()> {
         clear_terminal().await;
-        print_header();
+        // print_header();
         print_menu();
 
         // Use a custom prompt that integrates Starship
