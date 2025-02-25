@@ -1,5 +1,5 @@
 use crate::Result;
-use databento::dbn::{Dataset, Schema};
+use dbn::{Dataset, Schema};
 use std::path::PathBuf;
 use time::{self, OffsetDateTime};
 

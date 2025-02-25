@@ -1,7 +1,7 @@
 use super::super::super::midas::load::read_mbinary_file;
 use crate::error::Result;
 use crate::pipeline::vendors::v_databento::extract::read_dbn_file;
-use databento::dbn::Record as dbnRecord;
+use dbn::Record as dbnRecord;
 use mbinary::record_enum::RecordEnum;
 use mbinary::records::Record;
 use std::collections::HashMap;

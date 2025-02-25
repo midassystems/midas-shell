@@ -3,13 +3,13 @@ use crate::pipeline::vendors::DownloadType;
 use crate::utils::user_input;
 use crate::Result;
 use databento::{
-    dbn::{self, Dataset, SType, Schema},
     historical::batch::{DownloadParams, JobState, ListJobsParams, SubmitJobParams},
     historical::metadata::GetBillableSizeParams,
     historical::metadata::GetCostParams,
     historical::timeseries::{GetRangeParams, GetRangeToFileParams},
     HistoricalClient,
 };
+use dbn::{self, Dataset, SType, Schema};
 use std::path::PathBuf;
 use std::time::Duration;
 use time::OffsetDateTime;

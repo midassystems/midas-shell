@@ -12,7 +12,7 @@ use crate::pipeline::vendors::{DownloadType, Vendor};
 use crate::{Error, Result};
 use async_trait::async_trait;
 use client::DatabentoClient;
-use databento::dbn;
+use dbn;
 use extract::{read_dbn_batch_dir, read_dbn_file};
 use mbinary::enums::Dataset;
 use mbinary::enums::Schema;

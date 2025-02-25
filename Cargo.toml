@@ -15,6 +15,7 @@ async-trait = "0.1"
 tokio = { version = "1.0", features = ["fs", "io-util", "rt-multi-thread"] }
 toml = "0.8.19"
 databento = "0.20.0"
+dbn = "0.28.0"
 time = { version = "0.3", features = ["macros"] }
 walkdir = "2.3"
 async-compression = { version = "0.4.11", features = ["tokio", "zstd"] }

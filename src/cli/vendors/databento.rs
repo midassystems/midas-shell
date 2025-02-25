@@ -5,7 +5,7 @@ use crate::error::{Error, Result};
 use crate::pipeline::vendors::{v_databento::compare::compare_dbn, DownloadType, Vendor};
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
-use databento::dbn;
+use dbn;
 use mbinary::enums::Dataset;
 use std::path::PathBuf;
 use std::str::FromStr;

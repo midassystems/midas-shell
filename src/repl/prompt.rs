@@ -1,7 +1,5 @@
-// prompt.rs
 use chrono::Local;
 use colored::Colorize;
-// use crossterm::style::Stylize;
 use reedline::{Prompt, PromptEditMode, PromptHistorySearch};
 use std::borrow::Cow;
 use std::env;

@@ -1,6 +1,7 @@
 use crate::error::{Error, Result};
 use async_compression::tokio::bufread::ZstdDecoder;
-use databento::{dbn, historical::timeseries::AsyncDbnDecoder};
+use databento::historical::timeseries::AsyncDbnDecoder;
+use dbn;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::fs::File;
