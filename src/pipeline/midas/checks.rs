@@ -15,8 +15,6 @@ pub async fn compare_dbn_raw_output(
 ) -> Result<()> {
     let mut mbinary_decoder = read_mbinary_file(mbinary_filepath).await?;
     let (mut dbn_decoder, _map) = read_dbn_file(dbn_filepath).await?;
-    println!("{:?}", dbn_decoder.metadata());
-    println!("{:?}", mbinary_decoder.metadata());
 
     // Output files
     let mbinary_output_file = "raw_mbinary_records.txt";

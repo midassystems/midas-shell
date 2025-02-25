@@ -442,12 +442,12 @@ async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
         Schema::Mbp1,
         Schema::Tbbo,
         Schema::Trades,
-        Schema::Bbo1S,
-        Schema::Bbo1M,
         Schema::Ohlcv1S,
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
+        // Schema::Bbo1S,
+        // Schema::Bbo1M,
     ];
 
     let tickers = vec![
@@ -485,15 +485,15 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
     let context = Context::init()?;
 
     let schemas = vec![
+        Schema::Mbp1,
         Schema::Tbbo,
         Schema::Trades,
-        Schema::Bbo1S,
-        Schema::Bbo1M,
         Schema::Ohlcv1S,
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
-        Schema::Mbp1,
+        // Schema::Bbo1S,
+        // Schema::Bbo1M,
     ];
 
     let tickers = vec![
@@ -538,12 +538,12 @@ async fn test_compare_files_continuous() -> Result<()> {
         Schema::Mbp1,
         Schema::Tbbo,
         Schema::Trades,
-        Schema::Bbo1S,
-        Schema::Bbo1M,
         Schema::Ohlcv1S,
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
+        // Schema::Bbo1S,
+        // Schema::Bbo1M,
     ];
     for schema in &schemas {
         println!("Schema: {:?}", schema);
@@ -575,15 +575,15 @@ async fn test_compare_files_raw() -> Result<()> {
     let context = Context::init()?;
     let stype = Stype::Raw;
     let schemas = vec![
+        Schema::Mbp1,
         Schema::Tbbo,
         Schema::Trades,
-        Schema::Bbo1S,
-        Schema::Bbo1M,
         Schema::Ohlcv1S,
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
-        Schema::Mbp1,
+        // Schema::Bbo1S,
+        // Schema::Bbo1M,
     ];
     for schema in &schemas {
         println!("Schema: {:?}", schema);

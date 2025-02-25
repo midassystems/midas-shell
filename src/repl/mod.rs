@@ -12,12 +12,12 @@ use crate::error::Result;
 use crate::logger::system_logger;
 use clap::Parser;
 use completer::ReplCompleter;
-use header::{print_header, print_menu};
+use header::print_menu;
 use nu_ansi_term::{Color, Style};
 use prompt::MidasPrompt;
 use reedline::{
-    default_emacs_keybindings, ColumnarMenu, DefaultValidator, Emacs, ExampleHighlighter,
-    FileBackedHistory, KeyCode, KeyModifiers, Keybindings, MenuBuilder, ReedlineEvent,
+    default_emacs_keybindings, ColumnarMenu, DefaultValidator, Emacs, FileBackedHistory, KeyCode,
+    KeyModifiers, Keybindings, MenuBuilder, ReedlineEvent,
 };
 use reedline::{DefaultHinter, Reedline, ReedlineMenu, Signal};
 use std::path::PathBuf;
