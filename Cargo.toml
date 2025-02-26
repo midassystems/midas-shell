@@ -25,8 +25,8 @@ chrono = { version = "0.4", features = ["serde"] }
 colored = "3.0.0"
 console = "0.15"
 chrono-tz = "0.10.1"
-mbinary = {version= "1.0.24"}
-midas-client = {version = "1.0.19"}
+mbinary = {version= "1.0.26"}
+midas-client = {version = "1.0.21"}
 
 [dev-dependencies]
 anyhow = "1.0.86"
