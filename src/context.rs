@@ -41,9 +41,7 @@ impl Default for VendorsConfig {
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 pub struct CommonConfig {
     pub log_level: String,
-    pub historical_url: String,
-    pub trading_url: String,
-    pub instrument_url: String,
+    pub midas_url: String,
     pub api_key: String,
 }
 
@@ -51,9 +49,7 @@ impl Default for CommonConfig {
     fn default() -> Self {
         CommonConfig {
             log_level: "info".to_string(),
-            historical_url: "http://127.0.0.1:8080".to_string(),
-            trading_url: "http://127.0.0.1:8081".to_string(),
-            instrument_url: "http://127.0.0.1:8082".to_string(),
+            midas_url: "http://127.0.0.1:8080".to_string(),
             api_key: "api_key".to_string(),
         }
     }
@@ -74,9 +70,9 @@ impl Context {
         let config_dir = Self::config_dir();
         let config_path = Self::config_path(&config_dir);
         let config = Config::from_toml(&config_path)?;
-        let historical_client = Historical::new(&config.common.historical_url);
-        let trading_client = Trading::new(&config.common.trading_url);
-        let instrument_client = Instruments::new(&config.common.instrument_url);
+        let historical_client = Historical::new(&config.common.midas_url);
+        let trading_client = Trading::new(&config.common.midas_url);
+        let instrument_client = Instruments::new(&config.common.midas_url);
 
         let databento_client = Arc::new(Mutex::new(DatabentoVendor::new(
             &config.vendors.databento_key,

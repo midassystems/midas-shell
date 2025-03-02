@@ -48,7 +48,7 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
 }
 
 async fn cleanup_test_ticker(ticker: String, dataset: &Dataset) -> Result<()> {
-    let base_url = "http://localhost:8082";
+    let base_url = "http://localhost:8080";
     let client = midas_client::instrument::Instruments::new(base_url);
     let id = client.get_symbol(&ticker, dataset).await?.data[0]
         .instrument_id
@@ -184,7 +184,7 @@ async fn test_delete_instrument() -> Result<()> {
     let dataset = Dataset::Futures;
     let _ = create_test_ticker(ticker).await?;
 
-    let base_url = "http://localhost:8082";
+    let base_url = "http://localhost:8080";
     let client = midas_client::instrument::Instruments::new(base_url);
     let id = client.get_symbol(&ticker.to_string(), &dataset).await?.data[0]
         .instrument_id
@@ -266,8 +266,7 @@ async fn test_upload_get_compare() -> Result<()> {
 
 async fn create_tickers() -> anyhow::Result<()> {
     dotenv().ok();
-
-    let base_url = std::env::var("INSTRUMENT_URL").expect("Expected database_url.");
+    let base_url = "http://localhost:8080";
     let client = Instruments::new(&base_url);
 
     let schema = dbn::Schema::from_str("mbp-1")?;
@@ -392,7 +391,7 @@ async fn create_tickers() -> anyhow::Result<()> {
 /// Deletes the tickers created during setup
 async fn teardown_tickers() -> anyhow::Result<()> {
     dotenv().ok();
-    let base_url = std::env::var("INSTRUMENT_URL").expect("Expected INSTRUMENT_URL.");
+    let base_url = "http://localhost:8080";
     let client = Instruments::new(&base_url);
 
     let tickers_to_delete = vec![

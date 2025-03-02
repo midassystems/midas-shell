@@ -423,7 +423,7 @@ mod tests {
 
     // -- Helper --
     async fn create_test_ticker(ticker: &str) -> Result<u32> {
-        let base_url = "http://localhost:8082"; // Update with your actual base URL
+        let base_url = "http://localhost:8080"; // Update with your actual base URL
         let client = midas_client::instrument::Instruments::new(base_url);
 
         let first_available = date_to_unix_nanos("2024-08-20", None)?;
@@ -456,7 +456,7 @@ mod tests {
     }
 
     async fn cleanup_test_ticker(id: u32) -> Result<()> {
-        let base_url = "http://localhost:8082"; // Update with your actual base URL
+        let base_url = "http://localhost:8080"; // Update with your actual base URL
         let client = midas_client::instrument::Instruments::new(base_url);
 
         // let id = client.get_symbol(&ticker.to_string()).await?.data;
@@ -510,7 +510,7 @@ mod tests {
     // #[ignore]
     async fn test_transform() -> anyhow::Result<()> {
         dotenv().ok();
-        let base_url = "http://localhost:8082"; // Update with your actual base URL
+        let base_url = "http://localhost:8080"; // Update with your actual base URL
         let inst_client = midas_client::instrument::Instruments::new(base_url);
 
         let api_key =
@@ -554,7 +554,7 @@ mod tests {
     // #[ignore]
     async fn test_stage_stream() -> anyhow::Result<()> {
         dotenv().ok();
-        let base_url = "http://localhost:8082"; // Update with your actual base URL
+        let base_url = "http://localhost:8080"; // Update with your actual base URL
         let inst_client = midas_client::instrument::Instruments::new(base_url);
 
         let api_key =
@@ -609,7 +609,7 @@ mod tests {
     // #[ignore]
     async fn test_stage_batch() -> anyhow::Result<()> {
         dotenv().ok();
-        let base_url = "http://localhost:8082"; // Update with your actual base URL
+        let base_url = "http://localhost:8080"; // Update with your actual base URL
         let inst_client = midas_client::instrument::Instruments::new(base_url);
 
         let api_key =
@@ -667,10 +667,8 @@ mod tests {
     // #[ignore]
     async fn test_load() -> anyhow::Result<()> {
         dotenv().ok();
-        let base_url = "http://localhost:8082"; // Update with your actual base URL
-        let inst_client = midas_client::instrument::Instruments::new(base_url);
-
         let base_url = "http://localhost:8080"; // Update with your actual base URL
+        let inst_client = midas_client::instrument::Instruments::new(base_url);
         let hist_client = midas_client::historical::Historical::new(base_url);
 
         let api_key =

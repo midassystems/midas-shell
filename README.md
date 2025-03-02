@@ -113,15 +113,14 @@ The application ships with a default configuration file (`config.toml`) located 
 ```toml
 [common]
 log_level = "info"
-historical_url = "http://127.0.0.1:8080"
-trading_url = "http://127.0.0.1:8081"
+midas_url = "http://127.0.0.1:8080"
 api_key = "api_key"
 
 [vendors]
 databento_key = "api_key"
 ```
 
-- **Historical and Trading URLs**: Update the `historical_url` and `trading_url` based on where your `midas-server` is running.
+- **Midas URL**: Update the `midas_url` based on where your `midas-server` is running.
 - **Databento API Key**: You must acquire a free Databento API key from [Databento](https://databento.com) and add it to the `config.toml` file.
 
 ### Starship Toolbar Configuration (Optional)
