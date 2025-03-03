@@ -29,6 +29,7 @@ mbinary = {version= "1.0.26"}
 midas-client = {version = "1.0.22"}
 
 [dev-dependencies]
+sqlx = { version = "0.8.3", features = ["postgres","runtime-tokio-rustls",  "macros", "bigdecimal", "json"] }
 anyhow = "1.0.86"
 dotenv = "0.15"
 serial_test = "3.1.1"

@@ -10,6 +10,7 @@ use midas_clilib::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs}
 use midas_clilib::context::Context;
 use midas_clilib::{self, cli, cli::ProcessCommand};
 use serial_test::serial;
+use sqlx::PgPool;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -430,6 +431,20 @@ async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
     };
 
     upload_cmd.process_command(&context).await?;
+
+    // Update materialized view
+    let database_url = "postgres://postgres:password@127.0.0.1:5434/market_data";
+    let pool = PgPool::connect(database_url)
+        .await
+        .expect("Failed to connect to the database");
+
+    // Continuous volume
+    let query = "REFRESH MATERIALIZED VIEW futures_continuous_volume_windows;";
+    sqlx::query(query).execute(&pool).await?;
+
+    // Continuous calendar
+    let query = "REFRESH MATERIALIZED VIEW futures_continuous_calendar_windows;";
+    sqlx::query(query).execute(&pool).await?;
 
     Ok(())
 }
