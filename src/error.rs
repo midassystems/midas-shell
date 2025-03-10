@@ -1,3 +1,4 @@
+use inquire::InquireError;
 use std::env::VarError;
 use thiserror::Error;
 
@@ -41,10 +42,10 @@ pub enum Error {
     MbinaryError(#[from] mbinary::error::Error),
     #[error("Request error: {0}")]
     TracingError(#[from] tracing::subscriber::SetGlobalDefaultError),
-    // #[error("Anyhow error: {0}")]
-    // AnyhowError(#[from] anyhow::Error),
     #[error("Invalid date format: {0}")]
     InvalidDateFormat(String),
+    #[error("Inquire error: {0}")]
+    InquireError(#[from] InquireError),
 }
 
 #[macro_export]

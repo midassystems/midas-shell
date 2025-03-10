@@ -12,7 +12,7 @@ thiserror = "2.0.11"
 serde = {version ="1.0.205", features = ["derive"]}
 serde_json = "1.0.122"
 async-trait = "0.1"
-tokio = { version = "1.0", features = ["fs", "io-util", "rt-multi-thread"] }
+tokio = { version = "1.0", features = ["fs", "io-util", "rt-multi-thread", "signal"] }
 toml = "0.8.19"
 databento = "0.20.0"
 dbn = "0.28.0"
@@ -25,6 +25,9 @@ chrono = { version = "0.4", features = ["serde"] }
 colored = "3.0.0"
 console = "0.15"
 chrono-tz = "0.10.1"
+inquire={version="0.7.5", features=["date"]}
+ctrlc = "3.4"
+nix = "0.29.0"
 mbinary = {version= "1.0.26"}
 midas-client = {version = "1.0.22"}
 
@@ -40,10 +43,10 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "midas-shell"
-path = "src/shell_main.rs"
+path = "src/shell/main.rs"
 
 # Define the CLI binary
 [[bin]]
 name = "midas-cli"
-path = "src/cli_main.rs"
+path = "src/cli/main.rs"
 
