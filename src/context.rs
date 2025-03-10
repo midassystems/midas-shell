@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::pipeline::vendors::v_databento::DatabentoVendor;
+use crate::vendors::databento::DatabentoVendor;
 use midas_client::{historical::Historical, instrument::Instruments, trading::Trading};
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -107,7 +107,7 @@ impl Context {
         self.instrument_client.clone()
     }
 
-    pub async fn get_databento_client(&self) -> Arc<Mutex<DatabentoVendor>> {
+    pub fn get_databento_client(&self) -> Arc<Mutex<DatabentoVendor>> {
         Arc::clone(&self.databento_client)
     }
 

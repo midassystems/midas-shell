@@ -5,7 +5,22 @@ use midas_client::historical::Historical;
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Child, Command};
+use time::{macros::time, OffsetDateTime};
+
+/// Returns date.year()+1-01-01 00:00 or the alternate date whichever is older
+pub fn get_earlier_of_year_end_or_date(
+    date: OffsetDateTime,
+    compare_date: OffsetDateTime,
+) -> OffsetDateTime {
+    // Calculate the start of the next year based on the provided date
+    let next_year_start = date
+        .replace_date(date.date().replace_year(date.year() + 1).unwrap())
+        .replace_time(time!(00:00));
+
+    // Return the earlier of the two dates
+    next_year_start.min(compare_date)
+}
 
 pub fn date_to_unix_nanos(date_str: &str, timezone: Option<&str>) -> Result<i64> {
     // Parse the timezone or default to UTC
@@ -51,16 +66,11 @@ pub fn date_to_unix_nanos(date_str: &str, timezone: Option<&str>) -> Result<i64>
             ))
         })?;
 
-    // // Convert the NaiveDateTime to a DateTime<Utc>
-    // let datetime_utc: DateTime<Utc> = DateTime::from_naive_utc_and_offset(naive_datetime, Utc);
-    //
     // // Convert to Unix time in nanoseconds
     let unix_nanos = datetime_with_tz.timestamp_nanos_opt().unwrap();
 
     // Convert to Unix nanoseconds
     Ok(unix_nanos)
-
-    // Ok(datetime_with_tz.timestamp_nanos())
 }
 
 pub fn unix_nanos_to_date(unix_nanos: i64) -> Result<String> {
@@ -140,7 +150,7 @@ pub fn user_input() -> Result<bool> {
     }
 }
 
-pub fn run_python_engine(config_path: &str, mode: &str) -> std::io::Result<()> {
+pub fn run_python_engine(config_path: &str, mode: &str) -> std::io::Result<Child> {
     // Determine the Python executable to use from the current environment
     let python_bin = which_python()?;
 
@@ -150,16 +160,13 @@ pub fn run_python_engine(config_path: &str, mode: &str) -> std::io::Result<()> {
         .arg("midastrader.cli") // Specify the module you want to run
         .arg(config_path) // Pass the config_path argument
         .arg(mode) // Backtest or Live
-        .status()?;
+        // .stdout(Stdio::inherit()) // Show Python output in terminal
+        // .stderr(Stdio::inherit())
+        .spawn()?;
 
-    if status.success() {
-        println!("Python engine ran successfully.");
-    } else {
-        eprintln!("Python engine encountered an error.");
-    }
-
-    Ok(())
+    Ok(status)
 }
+
 /// Gets python from environment.
 fn which_python() -> std::io::Result<PathBuf> {
     // Use `which` or `where` command to find Python in the current environment's PATH
@@ -192,6 +199,36 @@ fn which_python() -> std::io::Result<PathBuf> {
             std::io::ErrorKind::NotFound,
             "Python executable not found in the current environment",
         )),
+    }
+}
+
+pub fn get_dashboard_path() -> Result<PathBuf> {
+    let mut dashboard_path: PathBuf = PathBuf::new();
+
+    // Development mode: Check for the Tauri binary in the same directory as the executable
+    if std::env::var("RUST_ENV").unwrap_or_default() == "dev" {
+        // Get the current executable's path
+        let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+
+        // Get the directory of the current executable
+        let exe_dir = exe_path.parent().expect("Failed to get parent directory");
+        dashboard_path = exe_dir.to_path_buf();
+        dashboard_path.push("midas-gui");
+    } else {
+        // Production mode
+        if cfg!(target_os = "macos") {
+            // In production on macOS, the Tauri app would be in /Applications
+            dashboard_path = PathBuf::from("/Applications/Midas.app");
+        } else if cfg!(target_os = "linux") {
+            // In production on Linux, the midas-gui binary is likely installed in /usr/local/bin
+            dashboard_path = PathBuf::from("/opt/midas/Midas.AppImage");
+        }
+    }
+    if dashboard_path.exists() {
+        Ok(dashboard_path)
+    } else {
+        println!("Midas app not found, please ensure it is installed.");
+        Err(Error::CustomError("Midas app not found".to_string()))
     }
 }
 

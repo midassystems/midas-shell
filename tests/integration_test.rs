@@ -6,9 +6,16 @@ use mbinary::enums::{Dataset, Schema, Stype};
 use mbinary::symbols::Instrument;
 use mbinary::vendors::{DatabentoData, VendorData, Vendors};
 use midas_client::instrument::Instruments;
-use midas_clilib::cli::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
+use midas_clilib::backtest::BacktestCommands;
+use midas_clilib::cli::commands::vendors::databento::DatabentoCommands;
 use midas_clilib::context::Context;
-use midas_clilib::{self, cli, cli::ProcessCommand};
+use midas_clilib::historical::HistoricalArgs;
+use midas_clilib::instrument::InstrumentCommands;
+use midas_clilib::instrument::{CreateArgs, DeleteArgs, GetArgs, UpdateArgs};
+use midas_clilib::midas::MidasCommands;
+use midas_clilib::strategies::StrategyCommands;
+use midas_clilib::TaskManager;
+use midas_clilib::{self};
 use serial_test::serial;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -24,7 +31,6 @@ const SYMBOLS: [&str; 2] = ["GC.n.0", "ZM.n.0"];
 
 // -- Helper --
 async fn create_test_ticker(ticker: &str) -> Result<()> {
-    let context = Context::init()?;
     let mut vendor_data = HashMap::new();
     vendor_data.insert("stype".to_string(), "continuous".to_string());
     vendor_data.insert("schema".to_string(), "mbp-1".to_string());
@@ -42,8 +48,10 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
     };
 
     // Command
-    let command = cli::instrument::InstrumentCommands::Create(create_args);
-    command.process_command(&context).await?;
+    let command = InstrumentCommands::Create(create_args);
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     Ok(())
 }
@@ -72,7 +80,6 @@ async fn test_create_instrument() -> Result<()> {
     vendor_data.insert("dataset".to_string(), "GLBX.MDP3".to_string());
 
     // Command
-    let context = Context::init()?;
     let dataset = Dataset::Futures;
     let create_args = CreateArgs {
         ticker: ticker.to_string(),
@@ -84,8 +91,10 @@ async fn test_create_instrument() -> Result<()> {
         expiration_date: "2025-01-27".to_string(),
         active: true,
     };
-    let command = cli::instrument::InstrumentCommands::Create(create_args);
-    command.process_command(&context).await?;
+    let command = InstrumentCommands::Create(create_args);
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     // Cleanup
     cleanup_test_ticker(ticker.to_string(), &dataset).await?;
@@ -101,13 +110,15 @@ async fn test_get_all_instruments() -> Result<()> {
     let _ = create_test_ticker(ticker).await?;
 
     // Command
-    let context = Context::init()?;
     let get_args = GetArgs {
         dataset: dataset.as_str().to_string(),
         vendor: None,
     };
-    let command = cli::instrument::InstrumentCommands::Get(get_args);
-    command.process_command(&context).await?;
+
+    let command = InstrumentCommands::Get(get_args);
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     // Cleanup
     cleanup_test_ticker(ticker.to_string(), &dataset).await?;
@@ -125,13 +136,15 @@ async fn test_get_instrument_by_vendor() -> Result<()> {
     let _ = create_test_ticker(ticker).await?;
 
     // Command
-    let context = Context::init()?;
     let get_args = GetArgs {
         dataset: dataset.as_str().to_string(),
         vendor: Some(vendor.as_str().to_string()),
     };
-    let command = cli::instrument::InstrumentCommands::Get(get_args);
-    command.process_command(&context).await?;
+
+    let command = InstrumentCommands::Get(get_args);
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     // Cleanup
     cleanup_test_ticker(ticker.to_string(), &dataset).await?;
@@ -153,7 +166,7 @@ async fn test_update_instrument() -> Result<()> {
     vendor_data.insert("dataset".to_string(), "GLBX.MDP3".to_string());
 
     let dataset = Dataset::Futures;
-    let context = Context::init()?;
+
     let args = UpdateArgs {
         instrument_id: 264,
         ticker: "ABC".to_string(),
@@ -168,8 +181,10 @@ async fn test_update_instrument() -> Result<()> {
         active: false,
     };
 
-    let command = cli::instrument::InstrumentCommands::Update(args);
-    command.process_command(&context).await?;
+    let command = InstrumentCommands::Update(args);
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     // Cleanup
     cleanup_test_ticker(ticker.to_string(), &dataset).await?;
@@ -192,12 +207,14 @@ async fn test_delete_instrument() -> Result<()> {
         .unwrap();
 
     // Command
-    let context = Context::init()?;
     let args = DeleteArgs {
         instrument_id: id as i32,
     };
-    let command = cli::instrument::InstrumentCommands::Delete(args);
-    command.process_command(&context).await?;
+
+    let command = InstrumentCommands::Delete(args);
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     Ok(())
 }
@@ -209,11 +226,11 @@ async fn test_delete_instrument() -> Result<()> {
 async fn test_list_strategies() -> Result<()> {
     std::env::set_var(MODE, "1");
 
-    let context = Context::init()?;
-
     // Command
-    let command = cli::strategies::StrategyCommands::List;
-    command.process_command(&context).await?;
+    let command = StrategyCommands::List;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     Ok(())
 }
@@ -223,11 +240,11 @@ async fn test_list_strategies() -> Result<()> {
 #[serial]
 // #[ignore]
 async fn test_list_backtests() -> Result<()> {
-    let context = Context::init()?;
-
     // Command
-    let command = cli::backtest::BacktestCommands::List;
-    command.process_command(&context).await?;
+    let command = BacktestCommands::List;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    command.process_command(task_manager).await?;
 
     Ok(())
 }
@@ -421,16 +438,17 @@ async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
 
     // Parameters
     let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
 
     // Mbp1
-    let upload_cmd = cli::vendors::databento::DatabentoCommands::Upload {
+    let upload_cmd = DatabentoCommands::Upload {
         dataset: dataset.as_str().to_string(),
         dbn_filepath:"GLBX.MDP3_mbp-1_HEG4_HEJ4_LEG4_LEJ4_LEM4_HEM4_HEK4_2024-02-09T00:00:00Z_2024-02-17T00:00:00Z.dbn".to_string(),
         dbn_downloadtype: "stream".to_string(),
         midas_filepath: "system_tests_data.bin".to_string(),
     };
 
-    upload_cmd.process_command(&context).await?;
+    upload_cmd.process_command(task_manager).await?;
 
     // Update materialized view
     let database_url = "postgres://postgres:password@127.0.0.1:5434/market_data";
@@ -451,7 +469,6 @@ async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
 
 async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
     dotenv().ok();
-    let context = Context::init()?;
 
     let schemas = vec![
         Schema::Mbp1,
@@ -474,13 +491,16 @@ async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
     let stype = Stype::Continuous;
 
     for schema in &schemas {
+        let context = Context::init()?;
+        let task_manager = TaskManager::new(context);
+
         let file_path = format!(
             "tests/data/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
         );
 
-        let historical_command = cli::historical::HistoricalArgs {
+        let historical_command = HistoricalArgs {
             symbols: tickers.clone(),
             start: "2024-02-13 00:00:00".to_string(),
             end: "2024-02-16 00:00:00".to_string(),
@@ -490,14 +510,13 @@ async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
             file_path,
         };
 
-        historical_command.process_command(&context).await?;
+        historical_command.process_command(task_manager).await?;
     }
     Ok(())
 }
 
 async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
     dotenv().ok();
-    let context = Context::init()?;
 
     let schemas = vec![
         Schema::Mbp1,
@@ -523,13 +542,16 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
     let stype = Stype::Raw;
 
     for schema in &schemas {
+        let context = Context::init()?;
+        let task_manager = TaskManager::new(context);
+
         let file_path = format!(
             "tests/data/{}_{}_test.bin",
             schema.to_string(),
             stype.to_string()
         );
 
-        let historical_command = cli::historical::HistoricalArgs {
+        let historical_command = HistoricalArgs {
             symbols: tickers.clone(),
             start: "2024-02-13 00:00:00".to_string(),
             end: "2024-02-17 00:00:00".to_string(),
@@ -539,7 +561,7 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
             file_path,
         };
 
-        historical_command.process_command(&context).await?;
+        historical_command.process_command(task_manager).await?;
     }
     Ok(())
 }
@@ -547,7 +569,6 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
 async fn test_compare_files_continuous() -> Result<()> {
     dotenv().ok();
 
-    let context = Context::init()?;
     let stype = Stype::Continuous;
     let schemas = vec![
         Schema::Mbp1,
@@ -561,6 +582,9 @@ async fn test_compare_files_continuous() -> Result<()> {
         // Schema::Bbo1M,
     ];
     for schema in &schemas {
+        let context = Context::init()?;
+        let task_manager = TaskManager::new(context);
+
         println!("Schema: {:?}", schema);
         let mbinary_filepath = format!(
             "tests/data/{}_{}_test.bin",
@@ -573,12 +597,12 @@ async fn test_compare_files_continuous() -> Result<()> {
             schema.to_string(),
         );
 
-        let compare_command = cli::vendors::databento::DatabentoCommands::Compare {
+        let compare_command = DatabentoCommands::Compare {
             dbn_filepath,
             midas_filepath: mbinary_filepath,
         };
 
-        compare_command.process_command(&context).await?;
+        compare_command.process_command(task_manager).await?;
     }
 
     Ok(())
@@ -587,7 +611,6 @@ async fn test_compare_files_continuous() -> Result<()> {
 async fn test_compare_files_raw() -> Result<()> {
     dotenv().ok();
 
-    let context = Context::init()?;
     let stype = Stype::Raw;
     let schemas = vec![
         Schema::Mbp1,
@@ -603,6 +626,9 @@ async fn test_compare_files_raw() -> Result<()> {
     for schema in &schemas {
         println!("Schema: {:?}", schema);
 
+        let context = Context::init()?;
+        let task_manager = TaskManager::new(context);
+
         let mbinary_filepath = format!(
             "tests/data/{}_{}_test.bin",
             schema.to_string(),
@@ -614,12 +640,12 @@ async fn test_compare_files_raw() -> Result<()> {
             schema.to_string(),
         );
 
-        let compare_command = cli::vendors::databento::DatabentoCommands::Compare {
+        let compare_command = DatabentoCommands::Compare {
             dbn_filepath,
             midas_filepath: mbinary_filepath,
         };
 
-        compare_command.process_command(&context).await?;
+        compare_command.process_command(task_manager).await?;
     }
 
     Ok(())
@@ -637,35 +663,39 @@ async fn test_databento_transform() -> anyhow::Result<()> {
     let _ = create_test_ticker(ticker).await?;
 
     let dataset = Dataset::Futures;
-    // Parameters
-    let context = Context::init()?;
 
     // Mbp1
     let dbn_filepath= "tests/data/databento/GLBX.MDP3_mbp-1_ZM.n.0_GC.n.0_2024-01-02T00:00:00Z_2024-01-04T00:00:00Z.dbn";
     let mbinary_filepath = "tests/data/ZM.n.0_GC.n.0_mbp-1_2024-01-02_2024-01-04.bin";
 
-    let upload_cmd = cli::vendors::databento::DatabentoCommands::Transform {
+    let upload_cmd = DatabentoCommands::Transform {
         dataset: dataset.as_str().to_string(),
         dbn_filepath: dbn_filepath.to_string(),
         midas_filepath: mbinary_filepath.to_string(),
     };
 
-    upload_cmd.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    upload_cmd.process_command(task_manager).await?;
 
     // Check duplicates
-    let duplicatecheck_cmd = cli::midas::MidasCommands::Duplicates {
+    let duplicatecheck_cmd = MidasCommands::Duplicates {
         filepath: mbinary_filepath.to_string(),
     };
 
-    duplicatecheck_cmd.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    duplicatecheck_cmd.process_command(task_manager).await?;
 
     // Check duplicates
-    let compare_cmd = cli::vendors::databento::DatabentoCommands::Compare {
+    let compare_cmd = DatabentoCommands::Compare {
         dbn_filepath: dbn_filepath.to_string(),
         midas_filepath: mbinary_filepath.to_string(),
     };
 
-    compare_cmd.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    compare_cmd.process_command(task_manager).await?;
 
     let path = PathBuf::from(mbinary_filepath);
     if path.exists() {
@@ -685,18 +715,17 @@ async fn test_update_databento() -> Result<()> {
     // Set up
     let ticker1 = "HE.n.0".to_string();
     let dataset = Dataset::Futures;
-
     let _ = create_test_ticker(&ticker1).await?;
 
-    // Parameters
-    let context = Context::init()?;
-
     // Mbp1
-    let update_cmd = cli::vendors::databento::DatabentoCommands::Update {
+    let update_cmd = DatabentoCommands::Update {
         dataset: dataset.as_str().to_string(),
         approval: true,
     };
-    update_cmd.process_command(&context).await?;
+
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    update_cmd.process_command(task_manager).await?;
 
     // Cleaup
     let _ = cleanup_test_ticker(ticker1, &dataset).await?;
@@ -713,11 +742,8 @@ async fn test_databento_download() -> Result<()> {
 
     let tickers: Vec<String> = SYMBOLS.iter().map(|s| s.to_string()).collect();
 
-    // Parameters
-    let context = Context::init()?;
-
     // Mbp1
-    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -728,10 +754,12 @@ async fn test_databento_download() -> Result<()> {
         dir_path: None,
     };
 
-    to_file_command.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    to_file_command.process_command(task_manager).await?;
 
     // Ohlcv
-    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -742,10 +770,12 @@ async fn test_databento_download() -> Result<()> {
         dir_path: None,
     };
 
-    to_file_command.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    to_file_command.process_command(task_manager).await?;
 
     // Trades
-    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -756,10 +786,12 @@ async fn test_databento_download() -> Result<()> {
         dir_path: None,
     };
 
-    to_file_command.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    to_file_command.process_command(task_manager).await?;
 
     // Tbbo
-    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -770,10 +802,12 @@ async fn test_databento_download() -> Result<()> {
         dir_path: None,
     };
 
-    to_file_command.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    to_file_command.process_command(task_manager).await?;
 
     // Bbo
-    let to_file_command = cli::vendors::databento::DatabentoCommands::Download {
+    let to_file_command = DatabentoCommands::Download {
         tickers: tickers.clone(),
         start: START.to_string(),
         end: END.to_string(),
@@ -784,7 +818,9 @@ async fn test_databento_download() -> Result<()> {
         dir_path: None,
     };
 
-    to_file_command.process_command(&context).await?;
+    let context = Context::init()?;
+    let task_manager = TaskManager::new(context);
+    to_file_command.process_command(task_manager).await?;
 
     Ok(())
 }
