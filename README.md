@@ -41,37 +41,8 @@ The shell includes the following commands:
 ![Midas Shell Starship](assets/starship.png)
 
 ## Installation
-
-1. Clone the repository:
-
    ```bash
-   git clone https://github.com/midassystems/midas-shell.git
-   cd midas-shell
-   ```
-
-2. Run the build script:
-
-   ```bash
-   ./scripts/build.sh
-   ```
-
-   - When prompted, select **Production**.
-
-3. Navigate to the release directory:
-
-   ```bash
-   cd midas-release
-   ```
-
-4. Make the installer executable:
-
-   ```bash
-   chmod +x ./install.sh
-   ```
-
-5. Run the installer:
-   ```bash
-   ./install.sh
+   curl -sSfL https://raw.githubusercontent.com/midassystems/midas-shell/main/scripts/install.sh | bash
    ```
 
 ## Requirements
