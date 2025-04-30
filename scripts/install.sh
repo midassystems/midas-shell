@@ -21,8 +21,8 @@ cargo build --release
 
 # Install
 mkdir -p "$INSTALL_PATH"
-cp target/release/midas-cli "$INSTALL_PATH/midas-cli"
-cp target/release/midas-shell "$INSTALL_PATH/midas-shell"
+sudo cp target/release/midas-cli "$INSTALL_PATH/midas-cli"
+sudo cp target/release/midas-shell "$INSTALL_PATH/midas-shell"
 
 # Copy configuration files conditionally
 files=("config.toml" "midas_starship.toml")
