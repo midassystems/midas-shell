@@ -1,26 +1,32 @@
 #!/bin/bash
 
-echo "Installing Midas shell ..."
+set -e
 
-# Clean out old version
-rm /usr/local/bin/midas-shell
-rm /usr/local/bin/midas-cli
+REPO_URL="https://github.com/midassystems/midas-shell.git"
+BUILD_DIR="$(mktemp -d -t midas-shell-src)"
+INSTALL_PATH="$HOME/.config/midas/bin"
 
-# Copy binaries to /usr/local/bin
-cp bin/midas-shell /usr/local/bin/midas-shell
-cp bin/midas-cli /usr/local/bin/midas-cli
+# Ensure Rust is installed
+if ! command -v cargo >/dev/null 2>&1; then
+	echo "'cargo' is not installed. Please install Rust before running this script."
+	exit 1
+fi
 
-# Make binaries executable
-chmod +x /usr/local/bin/midas-shell
-chmod +x /usr/local/bin/midas-cli
+# Clone most recent commit
+git clone --depth 1 "$REPO_URL" "$BUILD_DIR"
 
-# Ensure ~/.config/midas directory exists
-mkdir -p ~/.config/midas
+# Build
+cd "$BUILD_DIR"
+cargo build --release
 
-# List of configuration files
-files=("config.toml" "midas_starship.toml")
+# Install
+mkdir -p "$INSTALL_PATH"
+sudo cp target/release/midas-cli "$INSTALL_PATH/midas-cli"
+sudo cp target/release/midas-shell "$INSTALL_PATH/midas-shell"
 
 # Copy configuration files conditionally
+files=("config.toml" "midas_starship.toml")
+
 for file in "${files[@]}"; do
 	src_file="config/$file"
 	dest_file="$HOME/.config/midas/$file"
@@ -33,4 +39,13 @@ for file in "${files[@]}"; do
 	fi
 done
 
-echo "Installation complete! You can now run 'midas-shell'."
+# Cleanup
+rm -rf "$BUILD_DIR"
+
+# Post-install message
+echo ""
+echo "To use 'midas-shell' or 'midas-cli' from anywhere, add this to your shell config:"
+echo ""
+echo "    export PATH=\"\$HOME/.config/midas/bin:\$PATH\""
+echo ""
+echo "Then restart your shell or run: source ~/.bashrc (or ~/.zshrc)"
