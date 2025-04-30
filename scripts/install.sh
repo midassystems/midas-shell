@@ -3,7 +3,7 @@
 set -e
 
 REPO_URL="https://github.com/midassystems/midas-shell.git"
-BUILD_DIR="$(mktemp -d -t midas-shell-src-XXXX)"
+BUILD_DIR="$(mktemp -d -t midas-shell-src-XXXXXX)"
 INSTALL_PATH="$HOME/.config/midas/bin"
 
 # Ensure Rust is installed
