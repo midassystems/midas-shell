@@ -28,7 +28,7 @@ chrono-tz = "0.10.1"
 inquire={version="0.7.5", features=["date"]}
 ctrlc = "3.4"
 nix = "0.29.0"
-mbinary = {version= "1.0.26"}
+mbinary = {version= "1.0.32"}
 midas-client = {version = "1.0.22"}
 
 [dev-dependencies]

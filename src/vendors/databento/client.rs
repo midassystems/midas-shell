@@ -396,4 +396,48 @@ mod tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    #[serial]
+    #[ignore]
+    async fn test_get_historical_delete() -> anyhow::Result<()> {
+        // Not  test used to pull databento files //
+        dotenv().ok();
+        let api_key =
+            env::var("DATABENTO_KEY").expect("Expected API key in environment variables.");
+
+        // Parameters
+        let dataset = Dataset::XnasItch;
+        let start = time::macros::datetime!(2024-08-20 10:00 UTC);
+        let end = time::macros::datetime!(2024-08-20 10:05 UTC);
+        let symbols = vec!["AAPL".to_string(), "MSFT".to_string()];
+        let schema = Schema::Mbo;
+        let stype = SType::RawSymbol;
+
+        let mut client = DatabentoClient::new(&api_key).expect("Failed to create DatabentoClient");
+
+        // Test
+        let result = client
+            .get_historical(
+                &dataset,
+                &start,
+                &end,
+                &symbols,
+                &schema,
+                &stype,
+                &PathBuf::from("tests/data"),
+                false,
+            )
+            .await?;
+
+        // Handle the result
+        let (download_type, download_path) =
+            result.ok_or_else(|| anyhow::anyhow!("No download result"))?;
+        println!("{:?}", download_path);
+
+        // Validate
+        assert_eq!(download_type, DownloadType::Stream);
+
+        Ok(())
+    }
 }

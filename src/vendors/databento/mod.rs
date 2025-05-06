@@ -446,6 +446,7 @@ mod tests {
             first_available as u64,
             expiration_date as u64,
             true,
+            true,
         );
 
         let response = client.create_symbol(&instrument).await?;

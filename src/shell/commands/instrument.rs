@@ -46,6 +46,7 @@ fn construct_vendor_data(vendor: &Vendors) -> Result<VendorData> {
                 dataset: dataset_enum,
             }))
         }
+        Vendors::Internal => Ok(VendorData::Internal),
         _ => Err(Error::CustomError("Vendor not implemeted".to_string())),
     }
 }
@@ -65,15 +66,27 @@ pub fn create_instrument() -> Result<Instrument> {
     )?;
 
     let vendor_data = construct_vendor_data(&vendor)?;
-    let first_available =
-        date_to_unix_nanos(&DateSelect::new("Start Date:").prompt()?.to_string(), None)?;
-    let expiration_date = date_to_unix_nanos(
-        &DateSelect::new("Expiration Date:").prompt()?.to_string(),
-        None,
-    )?;
+
+    let is_continuous = Confirm::new("Is instrument continuous : ")
+        .with_default(false)
+        .prompt()?;
+
+    let first_available: i64;
+    let expiration_date: i64;
+    if is_continuous {
+        first_available = 0;
+        expiration_date = 0;
+    } else {
+        first_available =
+            date_to_unix_nanos(&DateSelect::new("Start Date:").prompt()?.to_string(), None)?;
+        expiration_date = date_to_unix_nanos(
+            &DateSelect::new("Expiration Date:").prompt()?.to_string(),
+            None,
+        )?;
+    }
+
     let active = Confirm::new("Set instrument active : ")
         .with_default(false)
-        .with_help_message("This data is stored for good reasons")
         .prompt()?;
 
     Ok(Instrument::new(
@@ -86,6 +99,7 @@ pub fn create_instrument() -> Result<Instrument> {
         first_available as u64,
         first_available as u64,
         expiration_date as u64,
+        is_continuous,
         active,
     ))
 }

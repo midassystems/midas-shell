@@ -95,6 +95,9 @@ pub struct CreateArgs {
     /// last date available in database
     #[arg(long)]
     pub expiration_date: String,
+    /// Conntinuous status
+    #[arg(long)]
+    pub is_continuous: bool,
     /// Active status
     #[arg(long)]
     pub active: bool,
@@ -139,6 +142,9 @@ pub struct UpdateArgs {
     /// last date available in database
     #[arg(long)]
     pub expiration_date: String,
+    /// Conntinuous status
+    #[arg(long)]
+    pub is_continuous: bool,
     /// Active status
     #[arg(long)]
     pub active: bool,
@@ -176,6 +182,7 @@ impl InstrumentCommands {
                     first_available as u64,
                     first_available as u64,
                     expiration_date as u64,
+                    args.is_continuous,
                     args.active,
                 );
 
@@ -216,6 +223,7 @@ impl InstrumentCommands {
                     first_available as u64,
                     last_available as u64,
                     expiration_date as u64,
+                    args.is_continuous,
                     args.active,
                 );
 

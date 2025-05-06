@@ -1475,9 +1475,9 @@ dependencies = [
 
 [[package]]
 name = "mbinary"
-version = "1.0.26"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4298e596bae7ff4407765773e4ae28165d98afcfa06812acbe3ca3d4e92bd79b"
+checksum = "91db4d95e6506f50666678eb880eaa665021a657a47a26eba9c8c738d5d36096"
 dependencies = [
  "bytemuck",
  "chrono",
@@ -1528,7 +1528,7 @@ dependencies = [
 
 [[package]]
 name = "midas-clilib"
-version = "0.1.3"
+version = "0.1.10"
 dependencies = [
  "anyhow",
  "async-compression",
