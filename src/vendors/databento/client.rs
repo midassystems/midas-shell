@@ -308,25 +308,29 @@ mod tests {
             .await
             .expect("Error calculating size");
 
+        println!("Size: {:?}", size);
+
         assert!(size > 0.0);
     }
 
     #[tokio::test]
     #[serial]
-    // #[ignore]
+    #[ignore = "Uncomment when the api key no longer monthly sub, was failing because of monthly subscription so data  free."]
     async fn test_check_cost() {
         let (mut client, dataset, start, end, symbols, schema, stype) = setup();
+
         let cost = client
             .check_cost(&dataset, &start, &end, &symbols, &schema, &stype)
             .await
             .expect("Error calculating cost");
 
+        println!("Cost: {:?}", cost);
         assert!(cost > 0.0);
     }
 
     #[tokio::test]
     #[serial]
-    #[ignore]
+    #[ignore = "Cost money to run, uncomment as needed."]
     async fn test_stream_to_file() -> anyhow::Result<()> {
         let (mut client, dataset, start, end, symbols, schema, stype) = setup();
 
@@ -348,7 +352,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore]
+    #[ignore = "Cost money to run, uncomment as needed."]
     async fn test_batch_to_file() -> anyhow::Result<()> {
         let (mut client, dataset, start, end, symbols, schema, stype) = setup();
         let path = PathBuf::from("tests/data");
@@ -368,7 +372,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore]
+    #[ignore = "Cost money to run, uncomment as needed."]
     async fn test_get_historical() -> anyhow::Result<()> {
         let (mut client, dataset, start, end, symbols, schema, stype) = setup();
 
@@ -399,7 +403,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore]
+    #[ignore = "Cost money to run, uncomment as needed."]
     async fn test_get_historical_delete() -> anyhow::Result<()> {
         // Not  test used to pull databento files //
         dotenv().ok();

@@ -468,7 +468,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore]
+    #[ignore = "Cost money to run, uncommented as needed"]
     async fn test_download() -> anyhow::Result<()> {
         dotenv().ok();
         let api_key =

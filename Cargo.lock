@@ -1475,9 +1475,9 @@ dependencies = [
 
 [[package]]
 name = "mbinary"
-version = "1.0.32"
+version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91db4d95e6506f50666678eb880eaa665021a657a47a26eba9c8c738d5d36096"
+checksum = "49fcd5b1464ef7fc49dc956839f950b7baac392741108e9054ab621b3c9f02c1"
 dependencies = [
  "bytemuck",
  "chrono",
@@ -1510,9 +1510,9 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "midas-client"
-version = "1.0.22"
+version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b16636fb0fc4f94d50da0473adea9f7de6cd71783209abf9ede0d973d44af202"
+checksum = "58897584a5f250404fb3ddf993550ec892ffedfb4e40949d71febc06867b33dc"
 dependencies = [
  "chrono",
  "futures",

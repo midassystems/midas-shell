@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::vendors::databento::extract::read_dbn_file;
 use crate::vendors::midas::load::read_mbinary_file;
 use dbn::Record as dbnRecord;
@@ -10,14 +10,12 @@ use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
 pub async fn compare_dbn(dbn_filepath: PathBuf, mbinary_filepath: &PathBuf) -> Result<()> {
-    let batch_size = 1000; // New parameter to control batch size
+    let batch_size = 100000; // New parameter to control batch size
     let mut mbinary_decoder = read_mbinary_file(mbinary_filepath).await?;
     let (mut dbn_decoder, _map) = read_dbn_file(dbn_filepath).await?;
 
     let mut mbinary_batch: HashMap<u64, Vec<RecordEnum>> = HashMap::new();
     let mut mbinary_decoder_done = false;
-
-    // Keep track of any unmatched DBN records
     let mut unmatched_dbn_records = Vec::new();
 
     // Start decoding and comparing
@@ -33,8 +31,14 @@ pub async fn compare_dbn(dbn_filepath: PathBuf, mbinary_filepath: &PathBuf) -> R
                 mbinary_decoder_done = true; // No more MBN records
             }
         }
-        let dbn_record_enum = dbn_record.as_enum()?.to_owned();
-        let ts_event = dbn_record_enum.header().ts_event; // Extract ts_event from DBN record
+        let dbn_record_enum: dbn::RecordEnum = dbn_record.as_enum()?.to_owned();
+        let ts_event = match &dbn_record_enum.rtype().unwrap() {
+            dbn::RType::Bbo1S | dbn::RType::Bbo1M => match &dbn_record_enum {
+                dbn::RecordEnum::Mbp1(msg) => msg.ts_recv,
+                _ => return Err(Error::CustomError("Invalid record type".into())),
+            },
+            _ => dbn_record_enum.header().ts_event,
+        };
 
         // Check if the ts_event exists in the MBN map
         if let Some(mbinary_group) = mbinary_batch.get_mut(&ts_event) {
