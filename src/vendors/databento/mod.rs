@@ -446,6 +446,7 @@ mod tests {
             first_available as u64,
             expiration_date as u64,
             true,
+            true,
         );
 
         let response = client.create_symbol(&instrument).await?;
@@ -467,7 +468,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore]
+    #[ignore = "Cost money to run, uncommented as needed"]
     async fn test_download() -> anyhow::Result<()> {
         dotenv().ok();
         let api_key =

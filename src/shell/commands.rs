@@ -57,7 +57,7 @@ pub struct Vendor;
 
 impl Vendor {
     pub fn list() -> Vec<&'static str> {
-        vec!["databento", "yfinance"]
+        vec!["databento", "yfinance", "internal"]
     }
 }
 

@@ -28,8 +28,8 @@ chrono-tz = "0.10.1"
 inquire={version="0.7.5", features=["date"]}
 ctrlc = "3.4"
 nix = "0.29.0"
-mbinary = {version= "1.0.26"}
-midas-client = {version = "1.0.22"}
+mbinary = {version= "1.0.35"}
+midas-client = {version = "1.0.23"}
 
 [dev-dependencies]
 sqlx = { version = "0.8.3", features = ["postgres","runtime-tokio-rustls",  "macros", "bigdecimal", "json"] }

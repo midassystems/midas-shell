@@ -44,6 +44,7 @@ async fn create_test_ticker(ticker: &str) -> Result<()> {
         vendor_data,
         first_available: "2024-11-27".to_string(),
         expiration_date: "2025-01-27".to_string(),
+        is_continuous: false,
         active: true,
     };
 
@@ -89,6 +90,7 @@ async fn test_create_instrument() -> Result<()> {
         vendor_data,
         first_available: "2024-11-27".to_string(),
         expiration_date: "2025-01-27".to_string(),
+        is_continuous: false,
         active: true,
     };
     let command = InstrumentCommands::Create(create_args);
@@ -177,7 +179,7 @@ async fn test_update_instrument() -> Result<()> {
         first_available: "2024-01-01".to_string(),
         last_available: "2024-11-01".to_string(),
         expiration_date: "2025-01-27".to_string(),
-
+        is_continuous: false,
         active: false,
     };
 
@@ -310,6 +312,7 @@ async fn create_tickers() -> anyhow::Result<()> {
         1709229600000000000,
         1704067200000000000,
         1709229600000000000,
+        false,
         true,
     ));
 
@@ -324,6 +327,7 @@ async fn create_tickers() -> anyhow::Result<()> {
         1707933600000000000,
         1704067200000000000,
         1707933600000000000,
+        false,
         true,
     ));
 
@@ -338,6 +342,7 @@ async fn create_tickers() -> anyhow::Result<()> {
         1712941200000000000,
         1704067200000000000,
         1712941200000000000,
+        false,
         true,
     ));
 
@@ -352,6 +357,7 @@ async fn create_tickers() -> anyhow::Result<()> {
         1714496400000000000,
         1704067200000000000,
         1714496400000000000,
+        false,
         true,
     ));
 
@@ -366,6 +372,7 @@ async fn create_tickers() -> anyhow::Result<()> {
         1715706000000000000,
         1704067200000000000,
         1715706000000000000,
+        false,
         true,
     ));
 
@@ -380,6 +387,7 @@ async fn create_tickers() -> anyhow::Result<()> {
         1718384400000000000,
         1704067200000000000,
         1718384400000000000,
+        false,
         true,
     ));
 
@@ -394,6 +402,127 @@ async fn create_tickers() -> anyhow::Result<()> {
         1719594000000000000,
         1704067200000000000,
         1719594000000000000,
+        false,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "LE.c.0",
+        "LiveCattle-c-0",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "LE.c.1",
+        "LiveCattle-c-1",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "LE.v.0",
+        "LiveCattle-v-0",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "LE.v.1",
+        "LiveCattle-v-1",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "HE.c.0",
+        "LeanHogs-c-0",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "HE.c.1",
+        "LeanHogs-c-1",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "HE.v.0",
+        "LeanHogs-v-0",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
+        true,
+    ));
+
+    // LEM4
+    instruments.push(Instrument::new(
+        None,
+        "HE.v.1",
+        "LeanHogs-v-1",
+        dataset,
+        Vendors::Internal,
+        0,
+        0,
+        0,
+        0,
+        true,
         true,
     ));
 
@@ -456,12 +585,7 @@ async fn test_databento_upload(dataset: &Dataset) -> Result<()> {
         .await
         .expect("Failed to connect to the database");
 
-    // Continuous volume
-    let query = "REFRESH MATERIALIZED VIEW futures_continuous_volume_windows;";
-    sqlx::query(query).execute(&pool).await?;
-
-    // Continuous calendar
-    let query = "REFRESH MATERIALIZED VIEW futures_continuous_calendar_windows;";
+    let query = "REFRESH MATERIALIZED VIEW futures_continuous;";
     sqlx::query(query).execute(&pool).await?;
 
     Ok(())
@@ -478,8 +602,8 @@ async fn test_get_records_continuous(dataset: &Dataset) -> Result<()> {
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
-        // Schema::Bbo1S,
-        // Schema::Bbo1M,
+        Schema::Bbo1M,
+        Schema::Bbo1S,
     ];
 
     let tickers = vec![
@@ -526,8 +650,8 @@ async fn test_get_records_raw(dataset: &Dataset) -> Result<()> {
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
-        // Schema::Bbo1S,
-        // Schema::Bbo1M,
+        Schema::Bbo1M,
+        Schema::Bbo1S,
     ];
 
     let tickers = vec![
@@ -578,8 +702,8 @@ async fn test_compare_files_continuous() -> Result<()> {
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
-        // Schema::Bbo1S,
-        // Schema::Bbo1M,
+        Schema::Bbo1M,
+        Schema::Bbo1S,
     ];
     for schema in &schemas {
         let context = Context::init()?;
@@ -620,8 +744,8 @@ async fn test_compare_files_raw() -> Result<()> {
         Schema::Ohlcv1M,
         Schema::Ohlcv1H,
         Schema::Ohlcv1D,
-        // Schema::Bbo1S,
-        // Schema::Bbo1M,
+        Schema::Bbo1M,
+        // Schema::Bbo1S, // 2 record not aligned appears they are missing from dbn
     ];
     for schema in &schemas {
         println!("Schema: {:?}", schema);

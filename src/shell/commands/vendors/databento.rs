@@ -1,16 +1,92 @@
+use super::super::Datasets;
 use crate::commands::TaskManager;
 use crate::error::{Error, Result};
-use crate::shell::commands::Datasets;
 use clap::{Args, Subcommand};
 use dbn;
 use inquire::Confirm;
 use inquire::{DateSelect, Select, Text};
-use mbinary::enums::Dataset;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::sync::Mutex;
+
+// Data options
+struct Dataset;
+
+impl Dataset {
+    pub fn list() -> Vec<&'static str> {
+        vec![
+            "GLBX.MDP3",
+            "XNAS.ITCH",
+            "XBOS.ITCH",
+            "XPSX.ITCH",
+            "BATS.PITCH",
+            "BATY.PITCH",
+            "EDGA.PITCH",
+            "EDGX.PITCH",
+            "XNYS.PILLAR",
+            "XCIS.PILLAR",
+            "XASE.PILLAR",
+            "XCHI.PILLAR",
+            "XCIS.BBO",
+            "XCIS.TRADES",
+            "MEMX.MEMOIR",
+            "EPRL.DOM",
+            "OPRA.PILLAR",
+            "DBEQ.BASIC",
+            "ARCX.PILLAR",
+            "IEXG.TOPS",
+            "EQUS.PLUS",
+            "XNYS.BBO",
+            "XNYS.TRADES",
+            "XNAS.QBBO",
+            "XNAS.NLS",
+            "IFEU.IMPACT",
+            "NDEX.IMPACT",
+            "EQUS.ALL",
+            "XNAS.BASIC",
+            "EQUS.SUMMARY",
+            "XCIS.TRADESBBO",
+            "XNYS.TRADESBBO",
+            "EQUS.MINI",
+        ]
+    }
+}
+struct Schema;
+
+impl Schema {
+    pub fn list() -> Vec<&'static str> {
+        vec![
+            "mbo",
+            "mbp-1",
+            "mbp-10",
+            "tbbo",
+            "trades",
+            "bbo-1s",
+            "bbo-1m",
+            "ohlcv-1s",
+            "ohlcv-1m",
+            "ohlcv-1h",
+            "ohlcv-1d",
+            "ohlcv-eod",
+        ]
+    }
+}
+
+struct SType;
+
+impl SType {
+    pub fn list() -> Vec<&'static str> {
+        vec![
+            "instrument_id",
+            "raw_symbol",
+            "smart",
+            "continuous",
+            "parent",
+        ]
+    }
+}
 
 #[derive(Debug, Args)]
 pub struct DatabentoArgs {
@@ -36,10 +112,12 @@ impl DatabentoCommands {
                     .map(|opt| opt.to_string())
                     .collect::<Vec<String>>(); // Split by newline characters
 
-                let start = DateSelect::new("Start Date:").prompt()?.to_string();
-                let end = DateSelect::new("End Date:").prompt()?.to_string();
+                let mut start = DateSelect::new("Start Date:").prompt()?.to_string();
+                let mut end = DateSelect::new("End Date:").prompt()?.to_string();
+                println!("Date {:?}", start);
 
                 // Try to parse the datetime string as an OffsetDateTime
+                start = format!("{}T00:00:00Z", start);
                 let start_date = OffsetDateTime::parse(&start, &Rfc3339).map_err(|_| {
                     Error::DateError(
                         "Error: Invalid start date format. Expected format: YYYY-MM-DD".to_string(),
@@ -47,25 +125,21 @@ impl DatabentoCommands {
                 })?;
 
                 // Try to parse the datetime string as an OffsetDateTime
+                end = format!("{}T00:00:00Z", end);
                 let end_date = OffsetDateTime::parse(&end, &Rfc3339).map_err(|_| {
                     Error::DateError(
-                        "Error: Invalid start date format. Expected format: YYYY-MM-DD".to_string(),
+                        "Error: Invalid end date format. Expected format: YYYY-MM-DD".to_string(),
                     )
                 })?;
-                let stype = Text::new("Stype:").prompt()?;
-                let schema = Text::new("Schema:").prompt()?;
-                let dataset = Text::new("Dataset:").prompt()?;
 
-                // Convert `stype` to the correct type (e.g., dbn::SType)
-                let stype_enum = dbn::SType::from_str(&stype)
-                    .map_err(|_| Error::CustomError(format!("Invalid 'stype': {}", stype)))?;
-                let schema_enum = dbn::Schema::from_str(&schema)
-                    .map_err(|_| Error::CustomError(format!("Invalid 'schema': {}", stype)))?;
-                let dataset_enum = dbn::Dataset::from_str(&dataset)
-                    .map_err(|_| Error::CustomError(format!("Invalid 'dataset': {}", stype)))?;
+                let schema =
+                    dbn::Schema::from_str(Select::new("Schema:", Schema::list()).prompt()?)?;
+                let stype = dbn::SType::from_str(Select::new("Stype:", SType::list()).prompt()?)?;
+                let dataset =
+                    dbn::Dataset::from_str(Select::new("Dataset:", Dataset::list()).prompt()?)?;
+
                 let approval = Confirm::new("Approval on download : ")
                     .with_default(false)
-                    .with_help_message("This data is stored for good reasons")
                     .prompt()?;
 
                 let dir_path = Text::new("File Path:").prompt()?;
@@ -75,9 +149,9 @@ impl DatabentoCommands {
                     .await
                     .download(
                         &symbols,
-                        &schema_enum,
-                        &dataset_enum,
-                        &stype_enum,
+                        &schema,
+                        &dataset,
+                        &stype,
                         start_date,
                         end_date,
                         approval,
@@ -86,7 +160,7 @@ impl DatabentoCommands {
                     .await;
             }
             DatabentoCommands::Transform => {
-                let dataset = Dataset::from_str(
+                let dataset = mbinary::enums::Dataset::from_str(
                     &Select::new("Dataset:", Datasets::list())
                         .prompt()?
                         .to_lowercase(),
